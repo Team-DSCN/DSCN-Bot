@@ -33,9 +33,8 @@ colour = data['colour']
 class DiscordEvents(commands.Cog):
     def __init__(self, bot:commands.Bot):
         self.bot = bot
-        self.LogChannel = self.bot.get_channel(LogChannel)
-        if self.LogChannel is None:
-            self.LogChannel = self.bot.get_channel(789191146647322624)
+        self.guild = bot.get_guild(781796557490094100)
+        self.LogChannel = discord.utils.get(self.guild.text_channels, name="bot-logs")
 
     @commands.Cog.listener()
     async def on_message_edit(self, before:discord.Message, after:discord.Message):
