@@ -171,14 +171,15 @@ class Information(commands.Cog):
 
     @botorowner()
     @commands.command(name="source", aliases=["src"])
-    async def source_command(self, ctx:commands.Context, *, command:str=None):
+    async def source_command(self, ctx:commands.Context,):
         """
         Displays the full source code or for a specific command.
         """
         url = "https://github.com/Team-DSCN/DSCN-Bot"
 
-        embed = discord.Embed(title="Source",timestamp=datetime.utcnow())
-        embed.description = f"{self.bot.user.name}'s code can be found [here]({url}).\nIt is available under the [GPLv3 License](https://github.com/Team-DSCN/DSCN-Bot/blob/main/LICENSE)"
+        embed = discord.Embed(title="Source",timestamp=datetime.utcnow(), colour=colour)
+        embed.description = f"{self.bot.user.name}'s code can be found [here]({url}).\nIt is available under the [GPLv3 License](https://github.com/Team-DSCN/DSCN-Bot/blob/main/LICENSE)."
+        embed.set_thumbnail(url=self.bot.user.avatar_url)
         embed.set_footer(text=footer)
         embed.set_author(name=str(ctx.author), icon_url=ctx.author.avatar_url)
         await ctx.send(embed=embed)
