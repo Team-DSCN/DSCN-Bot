@@ -21,6 +21,9 @@ To contact us (DSCN Management), mail us at teamdscn@gmail.com
 
 import discord, json, asyncio, psutil, platform
 
+import inspect
+import os
+
 from discord.ext import commands
 from utils.utils import Checks, Requests
 from utils.db import DatabaseConnection
@@ -169,9 +172,41 @@ class Information(commands.Cog):
     async def source_command(self, ctx:commands.Context, *, command:str=None):
         """
         Displays the full source code or for a specific command.
-        """
-        await ctx.send("Bot in development")
 
+        For the source code of a subcommand, you can separate it by periods.
+        Eg: `random.word`
+        or use spaces.
+        """
+
+        # Code Courtsey of Rapptz (DANNY)
+        # https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/meta.py#L344-L382
+
+        source_url = "https://github.com/Team-DSCN/DSCN-Bot"
+        branch = "main"
+        if command is None:
+            return await ctx.send(source_url)
+
+        if command == "help":
+            src = type(self.bot.help_command)
+            module = src.__module__
+            filename = inspect.getsourcefile(src)
+        else:
+            obj = self.bot.get_command(command.replace("."," "))
+            if obj is None:
+                return await ctx.send("Could not find the command")
+
+            src = obj.callback.__code__
+            module = obj.callback.__module__
+            filename = src.co_filename
+
+        lines, firstlineno = inspect.getsourcefile(src)
+        if not module.startswith('discord'):
+            location = os.path.relpath(filename).replace('\\', '/')
+        else:
+            location = module.replace('.', '/') + '.py'
+
+        final_url = f'<{source_url}/blob/{branch}/{location}#L{firstlineno}-L{firstlineno + len(lines) - 1}>'
+        await ctx.send(final_url)
 
     @botorowner()
     @commands.command()
