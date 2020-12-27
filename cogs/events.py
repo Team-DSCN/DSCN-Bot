@@ -27,14 +27,11 @@ from datetime import datetime
 with open("utils/vars.json") as f:
     data = json.load(f)
 
-LogChannel = data['channels']['LogChannel']
 colour = data['colour']
 
 class DiscordEvents(commands.Cog):
     def __init__(self, bot:commands.Bot):
         self.bot = bot
-        self.guild = bot.get_guild(781796557490094100)
-        self.LogChannel = discord.utils.get(self.guild.text_channels, name="bot-logs")
 
     @commands.Cog.listener()
     async def on_message_edit(self, before:discord.Message, after:discord.Message):
@@ -49,7 +46,11 @@ class DiscordEvents(commands.Cog):
                 embed.add_field(name="After", value=after.content, inline=False)
                 embed.set_footer(text="Edited at")
                 embed.set_author(name=str(before.author), icon_url=before.author.avatar_url)
-                await self.LogChannel.send(embed=embed)
+                try:
+                    LogChannel = discord.utils.get(before.guild.text_channels, name="bot-logs")
+                    await LogChannel.send(embed=embed)
+                except:
+                    pass
 
     @commands.Cog.listener()
     async def on_message_delete(self, message:discord.Message):
@@ -62,7 +63,11 @@ class DiscordEvents(commands.Cog):
             embed.add_field(name="Content", value=message.content)
             embed.set_author(name=str(message.author), icon_url=message.author.avatar_url)
             embed.set_footer(text="Deleted at")
-            await self.LogChannel.send(embed=embed)
+            try:
+                LogChannel = discord.utils.get(message.guild.text_channels, name="bot-logs")
+                await LogChannel.send(embed=embed)
+            except:
+                pass
 
     @commands.Cog.listener()
     async def on_member_remove(self, member:discord.Member):
@@ -74,7 +79,11 @@ class DiscordEvents(commands.Cog):
         embed.set_thumbnail(url=member.avatar_url)
         embed.set_author(name=str(member.author), icon_url=member.avatar_url)
         embed.set_footer(text="Left at")
-        await self.LogChannel.send(embed=embed)
+        try:
+            LogChannel = discord.utils.get(member.guild.text_channels, name="bot-logs")
+            await LogChannel.send(embed=embed)
+        except:
+            pass
         
 
 def setup(bot:commands.Bot):
