@@ -48,7 +48,9 @@ class Information(commands.Cog):
         self.bot = bot
         self.requests = Requests()
         self.artistDb = DatabaseConnection("Info")
-        self.LogChannel = bot.get_channel(LogChannel)
+        self.LogChannel = self.bot.get_channel(LogChannel)
+        if self.LogChannel is None:
+            self.LogChannel = self.bot.get_channel(789191146647322624)
 
     @commands.guild_only()
     @botorowner()
@@ -172,42 +174,16 @@ class Information(commands.Cog):
     async def source_command(self, ctx:commands.Context, *, command:str=None):
         """
         Displays the full source code or for a specific command.
-
-        For the source code of a subcommand, you can separate it by periods.
-        Eg: `random.word`
-        or use spaces.
         """
+        url = "https://github.com/Team-DSCN/DSCN-Bot"
 
-        # Code Courtsey of Rapptz (DANNY)
-        # https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/meta.py#L344-L382
+        embed = discord.Embed(title="Source",timestamp=datetime.utcnow())
+        embed.description = f"{self.bot.user.name}'s code can be found [here]({url}).\nIt is available under the [GPLv3 License](https://github.com/Team-DSCN/DSCN-Bot/blob/main/LICENSE)"
+        embed.set_footer(text=footer)
+        embed.set_author(name=str(ctx.author), icon_url=ctx.author.avatar_url)
+        await ctx.send(embed=embed)
 
-        source_url = "https://github.com/Team-DSCN/DSCN-Bot"
-        branch = "main"
-        if command is None:
-            return await ctx.send(source_url)
-
-        if command == "help":
-            src = type(self.bot.help_command)
-            module = src.__module__
-            filename = inspect.getsourcefile(src)
-        else:
-            obj = self.bot.get_command(command.replace("."," "))
-            if obj is None:
-                return await ctx.send("Could not find the command")
-
-            src = obj.callback.__code__
-            module = obj.callback.__module__
-            filename = src.co_filename
-
-        lines, firstlineno = inspect.getsourcefile(src)
-        if not module.startswith('discord'):
-            location = os.path.relpath(filename).replace('\\', '/')
-        else:
-            location = module.replace('.', '/') + '.py'
-
-        final_url = f'<{source_url}/blob/{branch}/{location}#L{firstlineno}-L{firstlineno + len(lines) - 1}>'
-        await ctx.send(final_url)
-
+       
     @botorowner()
     @commands.command()
     async def ping(self, ctx:commands.Context):
