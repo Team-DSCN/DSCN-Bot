@@ -363,8 +363,8 @@ class Information(commands.Cog):
 
     @commands.is_owner()
     @artists.command(aliases=['d'])
-    async def delete(self, ctx:commands.Context, artist:discord.Member):
-        await ctx.send(f"Are you sure you want to delete the record for {artist.mention}")
+    async def delete(self, ctx:commands.Context, artist:str):
+        await ctx.send(f"Are you sure you want to delete the record for **{artist}**")
 
         def check(message:discord.Message):
             return ctx.author == message.author and ctx.channel == message.channel #and message.content.lower() == "yes"
@@ -373,7 +373,7 @@ class Information(commands.Cog):
             msg = await self.bot.wait_for("message", check=check, timeout=30.0)
             if msg.content.lower() in ("yes", "y"):
                 await ctx.send("Deleting records...")
-                await self.artistDb.delete_one({"discordId":{"$eq":artist.id}})  
+                await self.artistDb.delete_one({"name":{"$eq":artist}})  
                 return await ctx.send("Record deleted")
                 
             elif msg.content.lower() in ("no", "n"):
