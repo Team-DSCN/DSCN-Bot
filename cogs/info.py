@@ -363,7 +363,7 @@ class Information(commands.Cog):
 
     @commands.is_owner()
     @artists.command(aliases=['d'])
-    async def delete(self, ctx:commands.Context, artist:str):
+    async def delete(self, ctx:commands.Context, *,artist:str):
         await ctx.send(f"Are you sure you want to delete the record for **{artist}**")
 
         def check(message:discord.Message):
