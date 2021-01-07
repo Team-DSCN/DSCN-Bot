@@ -61,8 +61,8 @@ class Techspiration(commands.Cog):
 
 
     async def random_colour(self) -> int:
-        c = (await self.requests.get("http://www.colr.org/json/color/random"))['hex']
-        return int(c,16)
+        c = (await self.requests.get("http://www.colr.org/json/color/random"))
+        return int(c['hex'],16)
 
     def convert_time(self, time) -> datetime:
         return datetime.strptime(time, "%Y-%m-%dT%H:%M:%SZ")
@@ -72,7 +72,7 @@ class Techspiration(commands.Cog):
         channel:discord.TextChannel = self.bot.get_channel(796435195879751681)
         if channel is not None:
             news = await self.get_news()
-            embed = discord.Embed(title=news['title'], url=news['title_url'], colour=self.random_colour(), timestamp=self.convert_time(news['published_at']))
+            embed = discord.Embed(title=news['title'], url=news['title_url'], timestamp=self.convert_time(news['published_at']), colour=0xf1ebd0)
             description = news['description']
             content = news['content']
             
