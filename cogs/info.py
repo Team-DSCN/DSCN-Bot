@@ -25,13 +25,11 @@ import inspect
 import os
 
 from discord.ext import commands
-from utils.utils import Checks, Requests
+from utils.checks import bot_channel, is_staff
+from utils.requests import Requests
 from utils.db import DatabaseConnection
 from datetime import datetime
 from typing import Optional
-
-botcmdchannel = Checks().botcmdchannel
-botorowner = Checks().botorowner
 
 
 with open("utils/vars.json") as f:
@@ -53,7 +51,7 @@ class Information(commands.Cog):
             self.LogChannel = self.bot.get_channel(789191146647322624)
 
     @commands.guild_only()
-    @botorowner()
+    @bot_channel()
     @commands.command(name="userinfo", aliases=["ui", "whois", "user"])
     async def userInfo(self, ctx:commands.Context, member:discord.Member = None):
         """
@@ -87,7 +85,7 @@ class Information(commands.Cog):
 
 
     @commands.guild_only()
-    @botorowner()
+    @bot_channel()
     @commands.command(name="serverinfo", aliases=["si","server", "guild", "guildinfo"])
     async def serverInfo(self, ctx:commands.Context):
         """
@@ -140,7 +138,7 @@ class Information(commands.Cog):
         embed.set_footer(text=f"Guild Id: {ctx.guild.id} | {footer}")
         await ctx.send(embed=embed)
 
-    @botorowner()
+    @bot_channel()
     @commands.command(name="avatar", aliases=["av"])
     async def userAvatar(self, ctx:commands.Context, member:discord.Member=None):
         """
@@ -154,7 +152,7 @@ class Information(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @botorowner()
+    @bot_channel()
     @commands.command(name="permissions", aliases=["serverperms", "perms", "guildperms", "guildpermissions"])
     async def memberGuildPerms(self, ctx:commands.Context, member:discord.Member=None):
         """
@@ -169,7 +167,7 @@ class Information(commands.Cog):
         embed.set_footer(text=footer)
         await ctx.send(embed=embed)
 
-    @botorowner()
+    @bot_channel()
     @commands.command(name="source", aliases=["src"])
     async def source_command(self, ctx:commands.Context,):
         """
@@ -185,7 +183,7 @@ class Information(commands.Cog):
         await ctx.send(embed=embed)
 
        
-    @botorowner()
+    @bot_channel()
     @commands.command()
     async def ping(self, ctx:commands.Context):
         """Shows the bot ping"""
@@ -195,7 +193,7 @@ class Information(commands.Cog):
         await m1.add_reaction('🏓')
         
 
-    @botorowner()
+    @bot_channel()
     @commands.command(name="credits",aliases=['credit'])
     async def creds(self, ctx:commands.Context):
         """See the credits for the bot"""
@@ -211,7 +209,7 @@ class Information(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @botorowner()
+    @bot_channel()
     @commands.command(aliases=['botinfo', 'botstats', 'about'])
     async def stats(self, ctx:commands.Context):
         """Shows stats about the bot"""
@@ -240,7 +238,7 @@ class Information(commands.Cog):
         await ctx.send(embed=embed)
 
 
-    @botorowner()
+    @bot_channel()
     @commands.command(aliases=['ut'])
     async def uptime(self, ctx:commands.Context):
         """Shows bot uptime"""
@@ -250,7 +248,7 @@ class Information(commands.Cog):
         days, hours = divmod(hours, 24)
         await ctx.send(f"I have been awake for: **{days}d, {hours}h, {minutes}m, {seconds}s**")
     
-    @botorowner()
+    @bot_channel()
     @commands.cooldown(1, 3, commands.BucketType.member)
     @commands.group(aliases=['artist'],invoke_without_command=True)
     async def artists(self, ctx:commands.Context):

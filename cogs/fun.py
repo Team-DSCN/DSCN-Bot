@@ -23,8 +23,8 @@ import discord, json, aiohttp, io
 
 from discord.ext import commands
 from datetime import datetime
-from utils.utils import Checks, Requests
-
+from utils.requests import Requests
+from utils.checks import bot_channel, is_staff
 
 from jishaku.codeblocks import codeblock_converter
 
@@ -35,8 +35,6 @@ footer = data['footer']
 colour = int(data['colour'],16)
 
 
-botcmdchannel = Checks().botcmdchannel
-botorowner = Checks().botorowner
 
 
 class Fun(commands.Cog):
@@ -72,7 +70,7 @@ class Fun(commands.Cog):
 
         await ctx.send(file=discord.File(io.BytesIO(read), filename="ss.png"), embed=embed)
     
-    @botorowner()
+    @bot_channel()
     @commands.cooldown(2,5, commands.cooldowns.BucketType.user)
     @commands.command(name="chatbot", aliases=["cb"])
     async def chatBot(self, ctx:commands.Context, *, message:str):
@@ -80,7 +78,7 @@ class Fun(commands.Cog):
         data = await self.requests.get(f"http://bruhapi.xyz/cb/{message}")
         await ctx.send(data['json']['res'])
 
-    @botorowner()
+    @bot_channel()
     @commands.cooldown(2, 5, commands.cooldowns.BucketType.user)
     @commands.command(name="translate", aliases=['tr'])
     async def translate(self, ctx:commands.Context, *,message:str):
@@ -89,7 +87,7 @@ class Fun(commands.Cog):
         data = await self.requests.get(f"http://bruhapi.xyz/translate/{message}")
         await ctx.send(f"`{message}` translates to **`{data['json']['text']}`**.\n*Detected Language: {data['json']['lang']}*")
 
-    @botorowner()
+    @bot_channel()
     @commands.group(name="random", aliases=['rand'])
     async def rand(self, ctx:commands.Context):
         """Some random stuff"""
@@ -131,7 +129,7 @@ class Fun(commands.Cog):
         data = await self.requests.get("https://dadjoke-api.herokuapp.com/api/v1/dadjoke")
         await ctx.send(data['json']['joke'])
         
-    @botorowner()
+    @bot_channel()
     @commands.cooldown(2,5, commands.cooldowns.BucketType.user)
     @commands.command(name="image")
     async def generateImage(self, ctx, *, message:str):
@@ -145,7 +143,7 @@ class Fun(commands.Cog):
 
         await ctx.send(file=discord.File(io.BytesIO(read), filename="image.png"), embed=embed)
 
-    @botorowner()
+    @bot_channel()
     @commands.command(name="poll")
     async def makePoll(self, ctx:commands.Context, title:str, *options):
         """Makes a quick poll"""

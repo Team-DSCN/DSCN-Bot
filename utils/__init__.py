@@ -19,5 +19,7 @@ If the License is not attached, see https://www.gnu.org/licenses/
 To contact us (DSCN Management), mail us at teamdscn@gmail.com
 """
 
-from .utils import Checks, Requests
+# from .utils import Checks, Requests
 from .db import DatabaseConnection
+from .requests import Requests
+from .checks import bot_channel, is_staff
