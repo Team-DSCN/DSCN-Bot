@@ -67,7 +67,7 @@ class Techspiration(commands.Cog):
     def convert_time(self, time) -> datetime:
         return datetime.strptime(time, "%Y-%m-%dT%H:%M:%SZ")
 
-    @tasks.loop(minutes=5.0)
+    @tasks.loop(hours=12.0)
     async def latest_tech_news(self):
         channel:discord.TextChannel = self.bot.get_channel(796435195879751681)
         if channel is not None:
@@ -85,9 +85,9 @@ class Techspiration(commands.Cog):
                 embed.set_image(url=news['image_url'])
             
             if news['source_name']:
-                source_name=news['source_name'] + " | Published At"
+                source_name=news['source_name'] + " | Published"
             else:
-                source_name = "Published At"
+                source_name = "Published"
             embed.set_footer(text=source_name)
 
             await channel.send(embed=embed)
