@@ -98,3 +98,6 @@ class Techspiration(commands.Cog):
 
     def cog_unload(self):
         self.latest_tech_news.cancel()
+
+def setup(bot:commands.Bot):
+    bot.add_cog(Techspiration(bot))
