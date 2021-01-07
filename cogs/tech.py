@@ -65,7 +65,7 @@ class Techspiration(commands.Cog):
         return int(c,16)
 
     def convert_time(self, time) -> datetime:
-        return datetime.strptime(time, "%Y-%m-%dT%H:%M:%S.%fZ")
+        return datetime.strptime(time, "%Y-%m-%dT%H:%M:%SZ")
 
     @tasks.loop(minutes=5.0)
     async def latest_tech_news(self):
