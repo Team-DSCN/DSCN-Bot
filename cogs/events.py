@@ -86,14 +86,21 @@ class DiscordEvents(commands.Cog):
     @commands.Cog.listener()
     async def on_member_update(self, before:discord.Member, after:discord.Member):
         if not before.bot:
-            embed=discord.Embed(title="Member Update", colour=before.colour,timestamp=datetime.utcnow())
             if before.nick != after.nick:
+                embed=discord.Embed(title="Member Update", colour=before.colour,timestamp=datetime.utcnow())
                 embed.set_footer(text="Updated at")
                 embed.set_author(name=str(before), icon_url=before.avatar_url)
                 embed.add_field(name="Before", value=before.nick, inline=False)
                 embed.add_field(name="After", value=after.nick)
 
+                try:
+                    LogChannel = discord.utils.get(before.guild.text_channels, name="bot-logs")
+                    await LogChannel.send(embed=embed)
+                except:
+                    pass
+
             if before.roles != after.roles:
+                embed=discord.Embed(title="Member Update", colour=before.colour,timestamp=datetime.utcnow())
                 embed.set_footer(text="Updated at")
                 embed.set_author(name=str(before), icon_url=before.avatar_url)
                 temp = list(set(before.roles + after.roles))
@@ -109,11 +116,11 @@ class DiscordEvents(commands.Cog):
                 if len(removed)>0:
                     embed.add_field(name="Roles Removed", value=", ".join([r.mention for r in removed]), inline=False)
 
-            try:
-                LogChannel = discord.utils.get(before.guild.text_channels, name="bot-logs")
-                await LogChannel.send(embed=embed)
-            except:
-                pass
+                try:
+                    LogChannel = discord.utils.get(before.guild.text_channels, name="bot-logs")
+                    await LogChannel.send(embed=embed)
+                except:
+                    pass
 
     @commands.Cog.listener()
     async def on_member_join(self, member:discord.Member):
