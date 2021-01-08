@@ -20,8 +20,9 @@ To contact us (DSCN Management), mail us at teamdscn@gmail.com
 """
 
 import discord, json, os
+import random
 
-from discord.ext import commands
+from discord.ext import commands, tasks
 from datetime import datetime
 
 with open("utils/vars.json") as f:
@@ -33,6 +34,7 @@ footer = data['footer']
 class Config(commands.Cog, command_attrs=dict(hidden=True)):
     def __init__(self, bot:commands.Bot):
         self.bot = bot
+        self.changePresence.start()
 
     '''
     @commands.is_owner()
@@ -172,7 +174,26 @@ class Config(commands.Cog, command_attrs=dict(hidden=True)):
             await ctx.send(f"Invalid option was provided. Please provide one of the following options: \n{types}")
         
 
+    async def get_activity(self):
+        l = [
+            "Sahara by BENZOD",
+            "Retrograde by Rag",
+            "Can You Hear The Water Run? by Hriday",
+            "Sakura by JG Keeper"
+        ]
 
+        return random.choice(l)
+
+    @tasks.loop(minutes=5.0)
+    async def changePresence(self):
+        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivtyType.listening, name=await self.get_activity()))
+
+    @changePresence.before_loop
+    async def before_change(self):
+        await self.bot.wait_until_ready()
+
+    def cog_unload(self):
+        self.changePresence.cancel()
 
 def setup(bot:commands.Bot):
     bot.add_cog(Config(bot))
