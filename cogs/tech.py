@@ -67,7 +67,7 @@ class Techspiration(commands.Cog):
     def convert_time(self, time) -> datetime:
         return datetime.strptime(time, "%Y-%m-%dT%H:%M:%SZ")
 
-    @tasks.loop(hours=12.0)
+    @tasks.loop(minutes=30.0)
     async def latest_tech_news(self):
         channel:discord.TextChannel = self.bot.get_channel(796435195879751681)
         if channel is not None:

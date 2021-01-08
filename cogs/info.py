@@ -187,7 +187,7 @@ class Information(commands.Cog):
     @commands.command()
     async def ping(self, ctx:commands.Context):
         """Shows the bot ping"""
-        m1:discord.Message = await ctx.send("Pinging...")
+        m1:discord.Message = await ctx.reply("Pinging...")
         await asyncio.sleep(0.5)
         await m1.edit(content=f"Pong! Average Latency is {round(self.bot.latency*1000)}ms")
         await m1.add_reaction('🏓')
