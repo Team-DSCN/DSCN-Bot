@@ -186,7 +186,7 @@ class Config(commands.Cog, command_attrs=dict(hidden=True)):
 
     @tasks.loop(minutes=5.0)
     async def changePresence(self):
-        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivtyType.listening, name=await self.get_activity()))
+        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=await self.get_activity()))
 
     @changePresence.before_loop
     async def before_change(self):
