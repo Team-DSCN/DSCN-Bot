@@ -67,12 +67,12 @@ class Techspiration(commands.Cog):
     def convert_time(self, time) -> datetime:
         return datetime.strptime(time, "%Y-%m-%dT%H:%M:%SZ")
 
-    @tasks.loop(minutes=30.0)
+    @tasks.loop(hours=1.0)
     async def latest_tech_news(self):
         channel:discord.TextChannel = self.bot.get_channel(796435195879751681)
         if channel is not None:
             news = await self.get_news()
-            embed = discord.Embed(title=news['title'], url=news['title_url'], timestamp=self.convert_time(news['published_at']), colour=0xf1ebd0)
+            embed = discord.Embed(title=news['title'], url=news['title_url'], timestamp=self.convert_time(news['published_at']), colour=discord.Colour.random())
             description = news['description']
             content = news['content']
             

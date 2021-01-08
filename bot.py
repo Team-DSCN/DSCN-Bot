@@ -26,6 +26,9 @@ import os
 from discord.ext import commands
 from datetime import datetime
 
+from dotenv import load_dotenv
+load_dotenv()
+
 
 with open("utils/vars.json", "r") as f:
     data = json.load(f)
@@ -40,6 +43,7 @@ os.environ["JISHAKU_HIDE"] = "True"
 bot = commands.Bot(command_prefix=commands.when_mentioned_or(prefix), case_insensitive=True, intents=intents, allowed_mentions= discord.AllowedMentions(users=True, roles=True, everyone=True))
 
 bot.owner_ids = (449897807936225290, 488012130423930880, 393378646162800640)
+bot.colour=0xce0037
 bot.start_time = datetime.utcnow()
 
 @bot.event
