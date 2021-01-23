@@ -251,7 +251,7 @@ class Information(commands.Cog):
             description = ""
             artists = await self.artistDb.fetch_all
             async for a in artists:
-                description+=f"• `{a['name']}` - {a['type']} | [Latest Release]({a['latest']})"
+                description+=f"• `{a['name']}` - {a['type']} | [Latest Release]({a['latest']})\n"
             embed.description = description
             return await ctx.send(embed=embed)
         
