@@ -112,9 +112,9 @@ class DiscordEvents(commands.Cog):
                     elif role in after.roles and role not in before.roles:
                         removed.append(role)
                 if len(added)>0:
-                    embed.add_field(name="Roles Added", value=", ".join([r.mention for r in added]),inline=False)
+                    embed.add_field(name="Roles Removed", value=", ".join([r.mention for r in added]),inline=False)
                 if len(removed)>0:
-                    embed.add_field(name="Roles Removed", value=", ".join([r.mention for r in removed]), inline=False)
+                    embed.add_field(name="Roles Added", value=", ".join([r.mention for r in removed]), inline=False)
 
                 try:
                     LogChannel = discord.utils.get(before.guild.text_channels, name="bot-logs")
