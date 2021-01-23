@@ -80,10 +80,6 @@ class DatabaseConnection:
 
         Type: `bool`
         """
-        count = await self.count
-        if post['_id'] != count+1:
-            post['_id'] = count+1
-
         try:
             await self.collection.insert_one(post)
             return True

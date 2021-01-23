@@ -40,11 +40,12 @@ os.environ["JISHAKU_NO_UNDERSCORE"] = "True"
 os.environ["JISHAKU_NO_DM_TRACEBACK"] = "True"
 os.environ["JISHAKU_HIDE"] = "True"
 
-bot = commands.Bot(command_prefix=commands.when_mentioned_or(prefix), case_insensitive=True, intents=intents, allowed_mentions= discord.AllowedMentions(users=True, roles=True, everyone=True))
+bot = commands.Bot(command_prefix=commands.when_mentioned_or(prefix), case_insensitive=True, intents=intents, allowed_mentions= discord.AllowedMentions(users=True, roles=True, everyone=True, replied_user=False))
 
 bot.owner_ids = (449897807936225290, 488012130423930880, 393378646162800640)
 bot.colour=0xce0037
 bot.start_time = datetime.utcnow()
+bot.github_url = "https://github.com/Team-DSCN/DSCN-Bot"
 
 @bot.event
 async def on_ready():

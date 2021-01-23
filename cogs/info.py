@@ -19,7 +19,7 @@ If the License is not attached, see https://www.gnu.org/licenses/
 To contact us (DSCN Management), mail us at teamdscn@gmail.com
 """
 
-import discord, json, asyncio, psutil, platform
+import discord, json, asyncio, psutil, platform, multiprocessing, time
 
 import inspect
 import os
@@ -29,7 +29,9 @@ from utils.checks import bot_channel, is_staff
 from utils.requests import Requests
 from utils.db import DatabaseConnection
 from datetime import datetime
-from typing import Optional
+from typing import Counter, Optional
+
+from jishaku import Jishaku
 
 
 with open("utils/vars.json") as f:
@@ -167,30 +169,25 @@ class Information(commands.Cog):
         embed.set_footer(text=footer)
         await ctx.send(embed=embed)
 
-    @bot_channel()
-    @commands.command(name="source", aliases=["src"])
-    async def source_command(self, ctx:commands.Context,):
-        """
-        Displays the full source code or for a specific command.
-        """
-        url = "https://github.com/Team-DSCN/DSCN-Bot"
-
-        embed = discord.Embed(title="Source",timestamp=datetime.utcnow(), colour=colour)
-        embed.description = f"{self.bot.user.name}'s code can be found [here]({url}).\nIt is available under the [GPLv3 License](https://github.com/Team-DSCN/DSCN-Bot/blob/main/LICENSE)."
-        embed.set_thumbnail(url=self.bot.user.avatar_url)
-        embed.set_footer(text=footer)
-        embed.set_author(name=str(ctx.author), icon_url=ctx.author.avatar_url)
-        await ctx.send(embed=embed)
-
-       
+          
     @bot_channel()
     @commands.command()
     async def ping(self, ctx:commands.Context):
         """Shows the bot ping"""
-        m1:discord.Message = await ctx.reply("Pinging...")
-        await asyncio.sleep(0.5)
-        await m1.edit(content=f"Pong! Average Latency is {round(self.bot.latency*1000)}ms")
-        await m1.add_reaction('🏓')
+        start = time.perf_counter()
+        msg:discord.Message = await ctx.send("Pinging...")
+        end = time.perf_counter()
+        duration = (end-start)*1000
+        db_start = time.perf_counter()
+        c = await self.artistDb.count
+        db_end = time.perf_counter()
+        db_duration = (db_end - db_start)*1000
+        emb = discord.Embed(colour=self.bot.colour)
+        emb.add_field(name="<a:typing:800335819764269096> | Typing", value=f"`{duration:.2f}ms`")
+        emb.add_field(name="<:DSCN:785553966389788682> | Websocket", value=f"`{round(self.bot.latency*1000)}ms`")
+        emb.add_field(name="<:mongodb:800335852693094510> | Database", value=f"`{db_duration:.2f}ms`")
+
+        await msg.edit(content=None,embed=emb)
         
 
     @bot_channel()
@@ -210,32 +207,22 @@ class Information(commands.Cog):
         await ctx.send(embed=embed)
 
     @bot_channel()
-    @commands.command(aliases=['botinfo', 'botstats', 'about'])
+    @commands.command(aliases=['botstats'])
     async def stats(self, ctx:commands.Context):
         """Shows stats about the bot"""
-        mem = psutil.virtual_memory()
-
-        embed = discord.Embed(title="About:", colour=colour)
-        embed.set_author(name=str(ctx.guild.owner), icon_url=ctx.guild.owner.avatar_url)
-        embed.set_thumbnail(url=ctx.guild.icon_url)
-        embed.description = "A bot for the DSCN discord made by [ItsArtemiz](https://discord.com/users/449897807936225290)"
-
-        embed.add_field(name="Statistics",
-                        value=f"<:server:789511925369274428> Server: {len(self.bot.guilds)}\n<:member:789445545915580486> Users: {len(self.bot.users)}\n\\⚙️ Commands: {len(self.bot.commands)}",
-                        inline=False)
-
-        embed.add_field(name="Usage",
-                        value=f"<:cpu:789513513897951243> CPU: {psutil.cpu_percent()}%\n{mem[1] / 1000000} MB available ({(100 - mem[2]):.2f}%)",
-                        inline=False)
-
-        embed.add_field(name="Version",
-                        value=f"<:python:789493535493718026> Python: {platform.python_version()}\n<:dpy:789493535501058078> Discord.py: {discord.__version__}\n\\🤖 Bot: v{version}",
-                        inline=False)
-
-
-        embed.set_footer(text=footer)
-
-        await ctx.send(embed=embed)
+        embed = discord.Embed(title="<a:loading:801422257221271592> Gathering Stats", colour=self.bot.colour)
+        msg = await ctx.send(embed=embed)
+        channel_types = Counter(type(c) for c in self.bot.get_all_channels())
+        voice = channel_types[discord.channel.VoiceChannel]
+        text = channel_types[discord.channel.TextChannel]
+        infoembed = discord.Embed(
+            title="<a:settings:801424449542815744> Stats",
+            description=f"<:member:789445545915580486> Member Count: `{len(self.bot.users)}`\n<:discord:801425079937663017> Servers: `{len(self.bot.guilds)}`\n<:code:801425080936038400> Commands: `{len(self.bot.commands)}`\n<:text:789428500003029013> Text Channels: `{text}`\n<:voice:789428500309475408> Voice Channels: `{voice}`\n<:dpy:789493535501058078> DPY Version: `{discord.__version__}`\n<:python:789493535493718026> Python Version: `{platform.python_version()}`\n<:server:801426535637712956> Server: `{platform.system()}`\n> CPU Count: `{multiprocessing.cpu_count()}`\n> CPU Usage: `{psutil.cpu_percent()}%`\n> RAM: `{psutil.virtual_memory().percent}%`",
+            colour=self.bot.colour
+        )
+        infoembed.set_footer(text=f"Version {version}")
+        await asyncio.sleep(2)
+        await msg.edit(embed=infoembed)
 
 
     @bot_channel()
@@ -250,138 +237,144 @@ class Information(commands.Cog):
     
     @bot_channel()
     @commands.cooldown(1, 3, commands.BucketType.member)
-    @commands.group(aliases=['artist'],invoke_without_command=True)
-    async def artists(self, ctx:commands.Context):
+    @commands.group(aliases=['artists'],invoke_without_command=True)
+    async def artist(self, ctx:commands.Context, *,name:str=None):
         """Shows the registered artists"""
-        embed = discord.Embed(colour=colour, title="All registered artists with DSCN", timestamp=datetime.utcnow())
+        if name is None:
+            embed = discord.Embed(
+                title="All Verified DSCN Artists",
+                colour=self.bot.colour,
+                timestamp=datetime.utcnow()
+            )
+            embed.set_thumbnail(url=self.bot.user.avatar_url)
+            embed.set_footer(text=footer)
+            description = ""
+            artists = await self.artistDb.fetch_all
+            async for a in artists:
+                description+=f"• `{a['name']}` - {a['type']} | [Latest Release]({a['latest']})"
+            embed.description = description
+            return await ctx.send(embed=embed)
+        
+        a = await self.artistDb.fetch({'name':name})
+        embed = discord.Embed(
+            title=f"Artist: `{name}`",
+            colour=self.bot.colour,
+            timestamp=datetime.utcnow()
+        )
+        embed.set_thumbnail(url=self.bot.user.avatar_url)
         embed.set_footer(text=footer)
-        embed.set_thumbnail(url=ctx.guild.icon_url)
-        text = ""
-        gen = await self.artistDb.fetch_all
-        async for a in gen:
-            text += f"• **{a['name']}** - {a['music']} | [Latest Release]({a['latestTrack']})\n"
+        embed.add_field(name="Music Style", value=a['type'])
+        embed.add_field(name="Latest Release", value=a['latest'], inline=False)
+        return await ctx.send(embed=embed)
 
-        embed.description = text
-
-        await ctx.send(embed=embed)
-
+    @artist.command(name="add", aliases=['a'])
     @commands.is_owner()
-    @artists.command(aliases=['insert'])
-    async def add(self, ctx:commands.Context, user:discord.Member, music:str, latestTrack:Optional[str]=None, trackUploaded:Optional[str]=None):
-        """
-        Adds the given member to the Artist Database
+    async def _add(self, ctx:commands.Context, name:str, type:str, latest:str=None):
+        """Adds the artist into the database.
+        If the artist already has a track released, you can mention it at the last"""
+        artists = await self.artistDb.fetch_all
+        async for a in artists:
+            if a['name'] == name:
+                return await ctx.send(f"Artist {a['name']} is already in the system with music style {a['type']}.")
 
-        Fields:
-        • `<user>` - The discord member that needs to be added in the database
-        • `<music>` - The music style of the artist, if it contains space, enlose them with quotes (i.e. "" or '')
-        • `[latestTrack]` - The latest track of the artist released through the DSCN Label
-        • `[trackUploaded]` - The time when it was uploaded. This should be of format **YYYY-MM-DD** (eg. 2020-12-12)
-        
-        If the `trackUploaded` is not provided, the current time is used
-        """
-        checkAll = await self.artistDb.fetch_all
-        async for a in checkAll:
-            if a['discordId'] == user.id:
-                return await ctx.send(embed=discord.Embed(title=f"{user.name} is already registered with us", colour=discord.Colour.red()))
-        
-        name = user.display_name
+        post = {
+            'name':name,
+            'type':type.capitalize(),
+            'latest':latest or "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        }
 
-        if trackUploaded is None:
-            trackUploaded = datetime.utcnow()
+        insert = await self.artistDb.insert(post)
+        if insert:
+            return await ctx.send(
+                f"Added artist `{name}` with music style: {type}."
+            )
         else:
-            if isinstance(trackUploaded, str):
-                newDate = trackUploaded.split("-")
-                trackUploaded = datetime(int(newDate[0]), int(newDate[1]), int(newDate[2]))
+            return await ctx.send("An error occured")
 
-            
-        post = {"_id":0, "name":name, "discordId":user.id, "music":music, "latestTrack":latestTrack, "trackUploaded":trackUploaded}
+    @artist.command(aliases=['m'])
+    @commands.is_owner()
+    async def modify(self, ctx:commands.Context, field:str, name:str, value:str):
+        """Modifies an existing value for a given artist"""
+        if field not in ('name','latest','type'):
+            return await ctx.send("Invalid field given. Valid fields are: `name`, `latest` ,`type`")
+        old = await self.artistDb.fetch({'name':name})
+        if not old:
+            return await ctx.send(f"There is no such artist by the name `{name}` registered.")
 
-        _404 = "https://i.kym-cdn.com/entries/icons/original/000/003/093/404.png"
-
-        # embeds
-
-        r = await self.artistDb.insert(post)
-
-        if r:
-            embed = discord.Embed(title="Artist Added Successfully", colour=discord.Colour.green(), timestamp=datetime.utcnow())
-            embed.description = f"Added Artist **{name}** with music type **{music}**.\n[Latest Track]({latestTrack if latestTrack else _404}) | Uploaded: {trackUploaded}"
-            embed.set_footer(text=f"Action by {ctx.author.name}")
-
+        update = await self.artistDb.update({'name':name}, {f'{field}':value})
+        if update:
+            return await ctx.send(f"Changed {old[f'{field}']} → {value}")
         else:
-            embed = discord.Embed(title="An Error Occured", colour=discord.Colour.red(), timestamp=datetime.utcnow())
-            embed.description = f"The artist couldn't be added to the database. Add the following manually to the database:\nName: {name}\nId: {user.id}\nMusic: {music}\nlatestTrack: {latestTrack}\ntrackUploaded: {trackUploaded}"
-            embed.set_footer(text=f"Action by {ctx.author.name}")
+            return await ctx.send("Couldn't update..")
 
-        await ctx.send(embed=embed)
-        await self.LogChannel.send(embed=embed)
-
+    @artist.command(aliases=['d'])
     @commands.is_owner()
-    @artists.command(aliases=['modify', 'm'], usage="<field> <artist> [params...]")
-    async def update(self, ctx:commands.Context, field:str, artist:discord.Member, *,param:str):
-        """
-        Used to update a field for the artist in the database
+    async def delete(self, ctx:commands.Context, *,name:str):
+        """Deletes a record from the database"""
+        a = await self.artistDb.fetch({'name':name})
+        if not a:
+            return await ctx.send(f"There is no such artist by the name `{name}` registered.")
+        embed = discord.Embed(
+            title=f"Artist: `{name}`",
+            colour=self.bot.colour,
+            timestamp=datetime.utcnow()
+        )
+        embed.set_thumbnail(url=self.bot.user.avatar_url)
+        embed.set_footer(text=footer)
+        embed.add_field(name="Music Style", value=a['type'])
+        embed.add_field(name="Latest Release", value=a['latest'], inline=False)
 
-        Fields:
-        • `<field>` - The field you want to update. There are currently 4 fields you can update:
-            → name: updates the name of the artist which will be displayed on embeds. By default it is their server nickname
-            → music: updates the music style of the artist
-            → latestTrack: updates the lates track field. This also updates the track timestamp to the time of command usage
-            → trackUploaded: updates when the track was uploaded
-        
-        • `<artist>` - The artist you want to update
-        """
-        old = {"discordId":artist.id}
-        if field.lower() == "name":
-            a = await self.artistDb.update(old, new={"name":param})
-            if a:
-                return await ctx.send(embed=discord.Embed(title=f"Name Succesfully updated to {param}", colour=discord.Color.green(), timestamp=datetime.utcnow()))
-            else:
-                return await ctx.send(embed=discord.Embed(title="An error occurred", colour=discord.Color.red()))
-        
-        elif field.lower() == "music":
-            a = await self.artistDb.update(old, new={"music":param})
-            if a:
-                return await ctx.send(embed=discord.Embed(title=f"Music Type Succesfully updated to {param}", colour=discord.Color.green(), timestamp=datetime.utcnow()))
-            else:
-                return await ctx.send(embed=discord.Embed(title="An error occurred", colour=discord.Color.red()))
-        elif field.lower() in ("latesttrack", "track"):
-            a = await self.artistDb.update(old, new={"latestTrack":param})
-            b = await self.artistDb.update(old, new={"trackUploaded":datetime.utcnow()})
-            if a and b:
-                return await ctx.send(embed=discord.Embed(title=f"Latest Track Succesfully updated to {param}", colour=discord.Color.green(), timestamp=datetime.utcnow()))
-            else:
-                return await ctx.send(embed=discord.Embed(title="An error occurred", colour=discord.Color.red()))
-        elif field.lower() in ("trackuploaded","timestamp","uploaded"):
-            new = param.split("-")
-            a = await self.artistDb.update(old, new={"trackUploaded":datetime(int(new[0]), int(new[1]), int(new[2]))})
-            if a:
-                return await ctx.send(embed=discord.Embed(title=f"Music Type Succesfully updated to {param}", colour=discord.Color.green(), timestamp=datetime.utcnow()))
-            else:
-                return await ctx.send(embed=discord.Embed(title="An error occurred", colour=discord.Color.red()))
+        await ctx.send("Are you sure you want to delete the following data:", embed=embed)
 
-    @commands.is_owner()
-    @artists.command(aliases=['d'])
-    async def delete(self, ctx:commands.Context, *,artist:str):
-        await ctx.send(f"Are you sure you want to delete the record for **{artist}**")
-
-        def check(message:discord.Message):
-            return ctx.author == message.author and ctx.channel == message.channel #and message.content.lower() == "yes"
-
+        def check(m:discord.Message):
+            return m.channel == ctx.channel and m.author == ctx.author
         try:
-            msg = await self.bot.wait_for("message", check=check, timeout=30.0)
-            if msg.content.lower() in ("yes", "y"):
-                await ctx.send("Deleting records...")
-                await self.artistDb.delete_one({"name":{"$eq":artist}})  
-                return await ctx.send("Record deleted")
-                
-            elif msg.content.lower() in ("no", "n"):
-                return await ctx.send("Phew, dodged a bullet there 😮")
-            else:
-                return await ctx.send("Cancelling command...")
-                
+            message:discord.Message = await self.bot.wait_for('message', timeout=30.0, check=check)
         except asyncio.TimeoutError:
-            return await ctx.send("Timeout reached. Cancelling command....")
+            return await ctx.send("Timeout reached. Cancelling command")
+        else:
+            if message.content.lower() in ('y', 'yes'):
+                await self.artistDb.delete_one({'name':name})
+                await ctx.send("\U0001f44c Done")
+            else:
+                await ctx.send("Invalid option given. Valid options are 'y' or 'yes'")
 
+
+    @commands.command(aliases=['src'])
+    @bot_channel()
+    async def source(self, ctx:commands.Context,*,command:str=None):
+        """Shows source of the bot or a command"""
+        if not command:
+            embed = discord.Embed(title="Bot's Source Code",
+                                  description="The source is distributed under [GPL-3.0 License](https://github.com/Team-DSCN/DSCN-Bot/blob/main/LICENSE)\nDon't forget to leave a star ⭐",
+                                  url=ctx.bot.github_url, colour=ctx.bot.colour)
+            embed.set_thumbnail(url=self.bot.user.avatar_url)
+            embed.set_footer(text=footer)
+            return await ctx.send(embed=embed)
+
+        command = ctx.bot.help_command if command.lower() == "help" else ctx.bot.get_command(command)
+        if not command:
+            return await ctx.send("Couldn't find command.")
+        if isinstance(command.cog, Jishaku):
+            return await ctx.send("<https://github.com/Gorialis/jishaku>")
+
+        if isinstance(command, commands.HelpCommand):
+            lines, starting_line_num = inspect.getsourcelines(type(command))
+            filepath = f"{command.__module__.replace('.', '/')}.py"
+        else:
+            lines, starting_line_num = inspect.getsourcelines(command.callback.__code__)
+            filepath = f"{command.callback.__module__.replace('.', '/')}.py"
+
+        ending_line_num = starting_line_num + len(lines) - 1
+        command = "help" if isinstance(command, commands.HelpCommand) else command
+        embed = discord.Embed(
+            title=f"Source on command: `{command}`",
+            description="The source is distributed under [GPL-3.0 License](https://github.com/Team-DSCN/DSCN-Bot/blob/main/LICENSE)\nDon't forget to leave a star ⭐",
+            url=f"{self.bot.github_url}/blob/master/{filepath}#L{starting_line_num}-L{ending_line_num}",
+            colour=ctx.bot.colour)
+        embed.set_thumbnail(url=self.bot.user.avatar_url)
+        embed.set_footer(text=footer)
+        await ctx.send(embed=embed)
 
 
             

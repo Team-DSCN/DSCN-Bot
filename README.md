@@ -20,6 +20,8 @@ Make a `.env` file in this directory (main directory) with the following:
 BotToken=<YourBotToken>
 DBToken=<YourDatabaseAccessUrl>
 ```
+
+The `DBoken` is only needed if you want to have a database.
 ---
 
 ## License

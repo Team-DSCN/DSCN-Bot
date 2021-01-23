@@ -19,6 +19,7 @@ If the License is not attached, see https://www.gnu.org/licenses/
 To contact us (DSCN Management), mail us at teamdscn@gmail.com
 """
 
+import traceback, aiohttp
 import discord, json
 
 from discord.ext import commands
@@ -34,14 +35,21 @@ class ErrorHandler(commands.Cog):
     def __init__(self, bot:commands.Bot):
         self.bot = bot
 
+    async def mystbin(self, data):
+      data = bytes(data, 'utf-8')
+      async with aiohttp.ClientSession() as cs:
+        async with cs.post('https://mystb.in/documents', data = data) as r:
+          res = await r.json()
+          key = res["key"]
+          return f"https://mystb.in/{key}.py"
+
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
         shh = (
             commands.CommandNotFound,
             commands.NotOwner,
             commands.MissingPermissions,
-            commands.CheckFailure,
-            commands.CommandInvokeError
+            commands.CheckFailure
         )
         
         handler = (
@@ -61,34 +69,28 @@ class ErrorHandler(commands.Cog):
         elif isinstance(error, handler):
             await ctx.send(embed = discord.Embed(title="Error",description=str(error), colour=discord.Color.red(),timestamp=datetime.utcnow()).set_footer(text=footer))
         else:
-            embed = discord.Embed(
-                title = "An unexpected error occured!",
-                description = f"The error was reported to the bot developers.\n```{str(error)}```",
-                timestamp = datetime.utcnow(),
-                colour = discord.Color.red()
-            )
+            tb ="".join(traceback.format_exception(type(error), error, error.__traceback__))
+            try:
+                embed = discord.Embed(
+                    description = f"```py\n{tb}```",
+                    colour=discord.Colour.red(),
+                    title="An unexpected error occured",
+                    timestamp=datetime.utcnow()
+                )
+                embed.set_footer(text=f"Caused by command: {ctx.command}")
 
-            await ctx.send(embed=embed)
-
-            # support embed
-
-            embed = discord.Embed(
-                title = "Unexpected error occured",
-                description = f"```{str(error)}```",
-                timestamp = datetime.utcnow(),
-                colour = discord.Color.red()
-            )
-            embed.add_field(
-                name="Details:",
-                value = f"""
-                Caused by: `{ctx.author.name} [{ctx.author.id}]`
-                Command used: `{ctx.command}`
-                """
-            )
-
-            c = self.bot.get_channel(LogChannel)
-            m:discord.Message = await c.send(embed=embed)
-            await m.pin(reason="An unexpected error")
+                await ctx.send(embed=embed)
+            except:
+                err = await self.mystbin(tb)
+                embed = discord.Embed(
+                    title="An unexpected error occured",
+                    timestamp=datetime.utcnow(),
+                    colour=discord.Colour.red(),
+                    description=f"The error is too long to send.\nHere, I have uploaded the error to [MystBin]({err}).",
+                    url=err
+                )
+                embed.set_footer(text=f"Caused by command: {ctx.command}")
+                await ctx.send(embed=embed)
             raise error
 def setup(bot:commands.Bot):
     bot.add_cog(ErrorHandler(bot))
