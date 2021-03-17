@@ -179,7 +179,11 @@ class Config(commands.Cog, command_attrs=dict(hidden=True)):
             "Rewind by Apratim",
             "Late Night Blues by Hriday, Ayaz Hamid",
             "Mood Swings by Benzod",
-            "Paranormal by Keeper"
+            "Paranormal by Keeper",
+            "Toxic by VeraMai",
+            "Chainsaw by Benzod",
+            "Encryption by Keeper",
+            "Prophylaxis by ROBBER"
         ]
 
         return random.choice(l)
