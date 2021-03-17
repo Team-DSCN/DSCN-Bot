@@ -176,15 +176,15 @@ class Config(commands.Cog, command_attrs=dict(hidden=True)):
 
     async def get_activity(self):
         l = [
-            "Sahara by BENZOD",
-            "Retrograde by Rag",
-            "Can You Hear The Water Run? by Hriday",
-            "Sakura by JG Keeper"
+            "Rewind by Apratim",
+            "Late Night Blues by Hriday, Ayaz Hamid",
+            "Mood Swings by Benzod",
+            "Paranormal by Keeper"
         ]
 
         return random.choice(l)
 
-    @tasks.loop(minutes=5.0)
+    @tasks.loop(minutes=7.0)
     async def changePresence(self):
         await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=await self.get_activity()))
 
