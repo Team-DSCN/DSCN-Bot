@@ -152,7 +152,7 @@ class Config(commands.Cog):
         i = 1
         d = ""
         for s in songs:
-            d = f"{i}. `{s}`"
+            d += f"{i}. `{s}`"
             i+=1
         embed.description = d
         embed.set_footer(text="All songs queued for bot status")
