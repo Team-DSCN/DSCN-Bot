@@ -1,40 +1,52 @@
-# DSCN-Bot
-A Discord Bot we use to keep our server safe and functional
+## DSCN
 
-Source: ``git clone https://github.com/Team-DSCN/DSCN-Bot.git``
-
----
+A Bot we use to manage stuff on our Discord Server.
 
 ## Purpose
-We made this bot so our server can function some what automated as all things today are automated. We made this repo public so many aspirants can learn about making a discord bot.
 
-We made the bot in [Python](https://www.python.org/) lnaguage and used [discord.py](https://pypi.org/project/discord.py/) library to make the bot functioning
+We made this bot to make a lot of stuff in the server automated. We do plan on adding more features to the bot. Till the time, feel free to check the source of the bot.
+The source here is completely for educational purposes.
 
----
+## Installation
 
-## Configuration
+If you want to install the bot, follow the steps:
 
-Make a `.env` file in this directory (main directory) with the following:
+1. Make sure you have Python 3.9.1
+
+This is required to actually run the bot.
+
+2. Make a `.env` file in the main directory and add the following:
 
 ```python
-BotToken=<YourBotToken>
-DBToken=<YourDatabaseAccessUrl>
+BOT_TOKEN=<YourBotToken>
+DB_TOKEN=<MongoDBAccessUrl>
 ```
 
-The `DBoken` is only needed if you want to have a database.
----
+- Don't add the `<>`
+
+3. After go to the `bot.py` file and edit the following:
+
+- Got to line 94 and 96 and edit the `db` and `collection` according to what you have in your database.
 
 ## License
 
-This repository is available under the [GNU General Public License](https://www.gnu.org/licenses/) (specifcally the 3rd revised version of the license).
 
-You are free to use this software, redistribute it and/or modify it under the
-terms of GNU General Public License version 3 or later.
+```
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
-For more information about the License, check [LICENSE](https://github.com/Team-DSCN/DSCN-Bot/blob/main/LICENSE)
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
----
+You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
+```
+
+For more information, check [LICENSE](https://github.com/Team-DSCN/DSCN-Bot/blob/main/LICENSE)
+
+## Requirements
+
+Can be found [here](https://github.com/Team-DSCN/DSCN-Bot/blob/main/requirements.txt)
 
 ## Links
-+ Contact us at our email: [teamdscn@gmail.com](mailto:teamdscn@gmail.com)
-+ DSCN Label [Discord Server](https://discord.gg/2NVgaEwd2J)
+
+[teamdscn@gmail.com](mailto:teamdscn@gmail.com)
+
+[Discord Server](https://discord.gg/2NVgaEwd2J)

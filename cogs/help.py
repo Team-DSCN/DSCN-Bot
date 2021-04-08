@@ -1,97 +1,157 @@
+# -*- codingL utf-8 -*-
+
 """
-This Discord Bot has been made to keep the server of DSCN Label safe and make it a better place for everyone.
+Help Command Module
+~~~~~~~~~~~~~~~~~~~~
 
-Copyright © 2020 DSCN Label with ItsArtemiz (Augadh Verma). All rights reserved.
+This file replaces the default help command.
 
-This Software is distributed with the GNU General Public License (version 3).
-You are free to use this software, redistribute it and/or modify it under the
-terms of GNU General Public License version 3 or later.
+Copyright (c) 2021 ItsArtemiz (Augadh Verma)
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of this Software.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-This Software is provided AS IS but WITHOUT ANY WARRANTY, without the implied
-warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-For more information on the License, check the LICENSE attached with this Software.
-If the License is not attached, see https://www.gnu.org/licenses/
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-To contact us (DSCN Management), mail us at teamdscn@gmail.com
+Contact: ItsArtemiz#8858 or https://discord.gg/2NVgaEwd2J
+
 """
 
-import discord, json
+import discord
 
+from typing import List, Mapping, Union
 from discord.ext import commands
 from datetime import datetime
 
+class HelpSource(commands.HelpCommand):
+    def __init__(self, **options):
+        self.colour = options.pop('colour', discord.Color.from_rgb(49, 255, 200))
+        self.footer = options.pop('footer', 'DSCN')
 
-with open("utils/vars.json") as f:
-    data = json.load(f)
+        self.verify_checks = True
+        self.show_hidden = False
+        super().__init__(
+            command_attrs={
+                "help":"Lists all the top notch commands based on your permission level <:rooEz:821814613124579339>",
+                "usage":"[command]"
+            }
+        )
 
-colour=int(data['colour'],16)
-footer=data['footer']
+    def command_usage(self, cmd:Union[commands.Command, commands.Group]) -> str:
+        return f"{cmd.qualified_name} {cmd.signature}"
 
-class CustomHelp(commands.HelpCommand):
-    def __init__(self):
-        super().__init__(command_attrs={
-            'help':'Shows the help message',
-            'aliases':['h', 'commands'],
-            'usage':'[command]'
-        })
+    def command_help(self, cmd:Union[commands.Command, commands.Group]) -> str:
+        return cmd.help if cmd.help else 'No help provided...'
 
-    def get_command_signature(self, command:commands.Command):
-        return f"{command.qualified_name} {command.signature}"
+    async def send_bot_help(
+        self,
+        mapping
+    ):
 
-    async def send_bot_help(self, mapping):
-        embed = discord.Embed(title="Help", colour=colour, timestamp=datetime.utcnow())
-        embed.description = f"Type {self.context.prefix}help command for more info on a command"
-        embed.set_footer(text=footer)
+        """
+        The bot's help command.
+        """
+        embed = discord.Embed(
+            title="Help",
+            colour = self.colour,
+            timestamp=datetime.utcnow(),
+            description=f"Type `{self.clean_prefix}help [command/category]` for more info on a command or a category."
+        ).set_footer(text=self.footer)
+
         for cog, cmds in mapping.items():
-            if cog and len(cmds) != 0:
-                filtered = await self.filter_commands(cmds, sort=True)
-                if len(filtered) != 0:
-                    embed.add_field(name=cog.qualified_name, value=", ".join(f"`{c.name}`" for c in filtered), inline=False)
+            if cog and cmds:
+                f = await self.filter_commands(cmds, sort=True)
+                if f:
+                    try:
+                        embed.add_field(
+                            name=cog.qualified_name,
+                            value=f", ".join([f"`{c.name}`" for c in f]),
+                            inline=False
+                        )
+                    except:
+                        pass
         await self.get_destination().send(embed=embed)
 
-    async def send_group_help(self, group):
-        embed = discord.Embed(title=f"Help", colour=colour, timestamp=datetime.utcnow())
-        embed.set_footer(text="<> - Required | [] - Optional")
-        embed.description = f"**{group.qualified_name}**: {group.help if group.help else 'No help provided..'}"
-        if isinstance(group, commands.Group):
-            filtered = await self.filter_commands(group.commands, sort=True)
-            embed.add_field(name="Subcommands", value=", ".join(f"`{c.name}`" for c in filtered), inline=False)
-                
-        if len(group.aliases) != 0:
-            embed.add_field(name="Aliases", value=", ".join(f"`{c}`" for c in group.aliases), inline=False)
+    async def send_command_help(self, command:Union[commands.Command, commands.Group]):
+        """
+        I am just using `send_command_help` because I am lazy and it works.
+        """
+        embed = discord.Embed(
+            title="Help",
+            description=self.command_help(command),
+            colour=self.colour,
+            timestamp=datetime.utcnow()
+        )
+        embed.set_footer(text=self.footer)
 
-        embed.add_field(name="Usage", value=f"`{self.context.prefix}{group.qualified_name} {group.signature}`" if group.signature else f"`{self.context.prefix}{group.qualified_name}`", inline=False)
+        embed.add_field(
+            name="Usage",
+            value=f"`{self.command_usage(command)}`",
+            inline=False
+        )
+
+        if command.aliases:
+            embed.add_field(
+                name="Aliases",
+                value=", ".join([f"`{c}`" for c in command.aliases]),
+                inline=False
+            )
+
+        if isinstance(command, commands.Group):
+            f = await self.filter_commands(command.commands, sort=True)
+            embed.add_field(
+                name="Subcommands",
+                value=", ".join([f"`{c.name}`" for c in f]),
+                inline=False
+            )
 
         await self.get_destination().send(embed=embed)
 
-    send_command_help = send_group_help
+    send_group_help = send_command_help
 
-    async def send_cog_help(self, cog):
-        embed = discord.Embed(title="Help", colour=colour, timestamp=datetime.utcnow())
-        embed.set_footer(text=footer)
+
+    async def send_cog_help(self, cog:commands.Cog):
+        """
+        This sends the help regarding an extension.
+        """
+
+        embed = discord.Embed(
+            title = f"All the commands for `{cog.qualified_name}` category",
+            colour = self.colour,
+            timestamp = datetime.utcnow()
+        ).set_footer(text=self.footer)
+
         if cog.description:
             embed.description = cog.description
-        filtered = await self.filter_commands(cog.get_commands(), sort=True)
-        embed.add_field(name=cog.qualified_name, value=", ".join(f"`{c.name}`" for c in filtered))
+        
+        f = await self.filter_commands(cog.get_commands(), sort=True)
+        for cmd in f:
+            try:
+                embed.add_field(
+                    name = self.command_usage(cmd),
+                    value = self.command_help(cmd)
+                )
+            except:
+                pass
+
         await self.get_destination().send(embed=embed)
 
-    async def send_error_message(self, error):
-        embed = discord.Embed(title="Error", colour=discord.Color.red(), timestamp=datetime.utcnow())
-        embed.description = str(error)
-        embed.set_footer(text=footer)
-        await self.get_destination().send(embed=embed)
+class Help(commands.Cog):
+    """
+    RoboArt's help command!
+    """
 
-
-
-
-class MyHelp(commands.Cog, name="Help"):
     def __init__(self, bot:commands.Bot):
         self.bot = bot
-        bot.help_command = CustomHelp()
+        self.bot.help_command = HelpSource()
 
 def setup(bot:commands.Bot):
-    bot.add_cog(MyHelp(bot))
+    bot.add_cog(Help(bot))

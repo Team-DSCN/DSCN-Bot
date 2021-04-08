@@ -1,70 +1,134 @@
+# -*- codingL utf-8 -*-
+
 """
-This Discord Bot has been made to keep the server of DSCN Label safe and make it a better place for everyone.
+DSCN
+~~~~~~
 
-Copyright © 2020 DSCN Label with ItsArtemiz (Augadh Verma). All rights reserved.
+The main file responsible for initialising the bot.
 
-This Software is distributed with the GNU General Public License (version 3).
-You are free to use this software, redistribute it and/or modify it under the
-terms of GNU General Public License version 3 or later.
+Copyright (c) 2021 ItsArtemiz (Augadh Verma)
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of this Software.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-This Software is provided AS IS but WITHOUT ANY WARRANTY, without the implied
-warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-For more information on the License, check the LICENSE attached with this Software.
-If the License is not attached, see https://www.gnu.org/licenses/
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-To contact us (DSCN Management), mail us at teamdscn@gmail.com
+Contact: ItsArtemiz#8858 or https://discord.gg/2NVgaEwd2J
+
 """
 
+from datetime import datetime
+from utils.mongoclient import MongoClient
 import discord
-import json
-import os
+import aiohttp
+import sys, traceback, os
 
 from discord.ext import commands
-from datetime import datetime
+from typing import Optional
 
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv() #This is only required if you are self-hosting the bot, but this doesnt harm anything
 
 
-with open("utils/vars.json", "r") as f:
-    data = json.load(f)
-prefix = data['prefix']
-
-intents = discord.Intents.all()
-
+# Just some jishaku stuff
 os.environ["JISHAKU_NO_UNDERSCORE"] = "True"
-os.environ["JISHAKU_NO_DM_TRACEBACK"] = "True"
+os.environ["JISHAKU_NO_DM_TRACEBACK"] = "True" 
 os.environ["JISHAKU_HIDE"] = "True"
 
-bot = commands.Bot(command_prefix=commands.when_mentioned_or(prefix), case_insensitive=True, intents=intents, allowed_mentions= discord.AllowedMentions(users=True, roles=True, everyone=True, replied_user=False))
+# Prefixes
+prefix = (";",".")
 
-bot.owner_ids = (449897807936225290, 488012130423930880, 393378646162800640)
-bot.colour=0xce0037
-bot.start_time = datetime.utcnow()
-bot.github_url = "https://github.com/Team-DSCN/DSCN-Bot"
+# Intial extensions to load.
+extensions = (
+    "cogs.event_logging",
+    "jishaku",
+    "cogs.handler",
+    "cogs.help",
+    "cogs.info",
+    "cogs.tags"
+)
 
-@bot.event
-async def on_ready():
-    print("{0.user} is up and running".format(bot))
 
-@bot.event
-async def on_message(message:discord.Message):
-    await bot.process_commands(message)
-    if message.author == bot.user:
-        return
-    if message.content.endswith('<@788766967472979990>'):
-        await message.channel.send(f"My prefix is: {prefix}")
-    if message.content.endswith('<@!788766967472979990>'):
-        await message.channel.send(f"My prefix is: {prefix}")
+class DSCN(commands.Bot):
+    def __init__(self ,*args, **kwargs):
+        allowed_mentions = discord.AllowedMentions(roles=False, everyone=False, users=True, replied_user=True)
+        intents = discord.Intents.all()
 
-for filename in os.listdir('./cogs'):
-    if filename.endswith('.py'):
-        bot.load_extension("cogs.{}".format(filename[:-3]))
+        super().__init__(
+            command_prefix=commands.when_mentioned_or(*prefix),
+            intents=intents,
+            allowed_mentions=allowed_mentions,
+            case_insensitive=True,
+            **kwargs
+        )
 
-bot.load_extension("jishaku")
+        self.loop.create_task(self.create_session())
+        self.colour = 0xce0037 #discord.Color.from_rgb(49, 255, 200) #Beta Colour
+        
+        self.version = "1.1.0"
+        self.footer = "DSCN"
 
-bot.run(os.environ.get("BotToken"))
+        for cog in extensions:
+            try:
+                self.load_extension(cog)
+            except Exception as e:
+                print(f"Failed to load extension {cog}.", file=sys.stderr)
+                traceback.print_exc()
+
+    async def create_session(self):
+        """ Creates an aiohttp ClientSession and a db. """
+
+        await self.wait_until_ready()
+        if not hasattr(self, "session"):
+            self.session = aiohttp.ClientSession()
+        if not hasattr(self, "db"):
+            self.db = MongoClient(db="DSCN", collection="Artists")
+        if not hasattr(self, "tagdb"):
+            self.tagdb = MongoClient(db="DSCN", collection="Tags")
+
+
+    async def get_or_fetch_member(self, guild:discord.Guild, member_id:int) -> Optional[discord.Member]:
+        """Searches the cache for a member or fetches if not found.
+        
+        Parameters
+        -----------
+        guild: Guild
+            The guild where we will do the searching.
+        member_id: int
+            The member ID to search for.
+            
+        Returns
+        --------
+        Optional[Member]
+            The member or None if not found
+        """
+
+        member = guild.get_member(member_id)
+        if member:
+            return member
+
+        try:
+            member = await guild.fetch_member(member_id)
+        except discord.HTTPException:
+            return None
+        else:
+            return member
+
+    async def on_ready(self):
+        print(f"{self.user} is up and now running! (ID: {self.user.id})")
+
+        if not hasattr(self, "uptime"):
+            self.uptime = datetime.utcnow()
+    
+
+if __name__ == "__main__":
+    bot = DSCN()
+    bot.run(os.environ.get("BOT_TOKEN"))

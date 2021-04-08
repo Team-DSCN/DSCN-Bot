@@ -1,7 +1,8 @@
-discord.py==1.6.0
-pymongo==3.11.2
-motor==2.3.0
-dnspython==2.0.0
+discord.py==1.7.1
 jishaku
-psutil
-python-dotenv
+pymongo==3.11.2
+psutil==5.8.0
+dnspython==2.1.0
+git+https://github.com/Rapptz/discord-ext-menus
+humanize==3.2.0
+motor==2.3.0

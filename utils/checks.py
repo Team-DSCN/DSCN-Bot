@@ -1,62 +1,80 @@
+# -*- codingL utf-8 -*-
+
+"""
+Checks
+~~~~~~~
+
+Copyright (c) 2021 ItsArtemiz (Augadh Verma)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+Contact: ItsArtemiz#8858 or https://discord.gg/2NVgaEwd2J
+
+"""
+
 from discord.ext import commands
-import re
+from .errors import NotBotChannel, InvalidArtist, NotStaff
 
-async def check_perms(ctx:commands.Context, perms, *,check=all):
-    is_owner = await ctx.bot.is_owner(ctx.author)
-    if is_owner:
-        return True
+AR = 820579878826278932
+STAFF = 781796816257548308
+ARTIST = 782673506483568670
+BOTCHANNEL = 781809910823518218
 
-    resolved = ctx.channel.permissions_for(ctx.author)
-    return check(getattr(resolved,name,None) == value for name, value in perms.items())
-
-def has_perms(ctx:commands.Context, check=all, **perms):
-    async def pred(ctx):
-        return await check_perms(ctx, perms, check=check)
-    return commands.check(pred)
-
-async def check_guild_perms(ctx:commands.Context, perms, *, check=all):
-    is_owner = await ctx.bot.is_owner(ctx.author)
-    if is_owner:
-        return True
-    if ctx.guild is None:
-        return False
-    
-    resolved = ctx.author.guild_permissions
-    return check(getattr(resolved, name, None) == value for name, value in perms.items())
-
-def has_guild_perms(*, check=all, **perms):
+def staff():
     async def pred(ctx:commands.Context):
-        return await check_guild_perms(ctx, perms, check=check)
+        if await ctx.bot.is_owner(ctx.author):
+            return True
+        elif STAFF in [r.id for r in ctx.author.roles]:
+            return True
+        else:
+            raise NotStaff(f"{ctx.author} is not a member of the staff team.")
     return commands.check(pred)
 
-def has_role(ctx:commands.Context, roleId:int):
-    for role in ctx.author.roles:
-        if role.id == roleId:
+def ar():
+    async def pred(ctx:commands.Context):
+        if await ctx.bot.is_owner(ctx.author):
             return True
-    return False
+        elif STAFF in [r.id for r in ctx.author.roles]:
+            return True
+        elif AR in [r.id for r in ctx.author.roles]:
+            return True
+        else:
+            raise NotStaff(f"{ctx.author} is not a member of the A&R team.")
 
-def has_either_role(ctx:commands.Context, roles:list):
-    for role in ctx.author.roles:
-        if role.id in roles:
+    return commands.check(pred)
+
+def artist():
+    async def pred(ctx:commands.Context):
+        if await ctx.bot.is_owner(ctx.author):
             return True
-    return False
+        elif STAFF in [r.id for r in ctx.author.roles]:
+            return True
+        elif ARTIST in [r.id for r in ctx.author.roles]:
+            return True
+        else:
+            raise InvalidArtist(f"{ctx.author} is not a registered artist.")
+    return commands.check(pred)
 
 def bot_channel():
     async def pred(ctx:commands.Context):
-        pattern = re.compile(r'.bot-commands')
         if await ctx.bot.is_owner(ctx.author):
             return True
-        if re.match(pattern, ctx.channel.name):
+        elif STAFF in [r.id for r in ctx.author.roles]:
             return True
-        return False
-    return commands.check(pred)
+        elif ctx.channel.id == BOTCHANNEL:
+            return True
+        else:
+            raise NotBotChannel("This command can be used only in a bot channel.")
 
-def is_staff():
-    async def pred(ctx:commands.Context):
-        role = "staff"
-        if await ctx.bot.is_owner(ctx.author):
-            return True
-        if role in [(role.name).lower() for role in ctx.author.roles]:
-            return True
-        return False
     return commands.check(pred)
