@@ -151,7 +151,7 @@ class Help(commands.Cog):
 
     def __init__(self, bot:commands.Bot):
         self.bot = bot
-        self.bot.help_command = HelpSource()
+        self.bot.help_command = HelpSource(colour=self.bot.colour)
 
 def setup(bot:commands.Bot):
     bot.add_cog(Help(bot))

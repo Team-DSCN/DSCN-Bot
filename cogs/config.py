@@ -28,6 +28,7 @@ import discord
 from discord.ext import commands, tasks
 from bot import DSCN, extensions
 from random import choice
+from utils.checks import staff
 
 class Config(commands.Cog):
     """ Configuration Module """
@@ -75,11 +76,8 @@ class Config(commands.Cog):
 
 
     async def get_activity(self) -> discord.Activity:
-        _all = []
-        async for a in self.bot.db.find():
-            _all.append(a['release'])
-
-        activity =  choice(_all)
+        from utils.songs import songs
+        activity =  choice(songs)
 
         return discord.Activity(
             type = discord.ActivityType.listening,
@@ -111,5 +109,47 @@ class Config(commands.Cog):
         self.change_pres.cancel()
 
 
+    @staff()
+    @commands.group(invoke_without_command=True)
+    async def status(self, ctx:commands.Context):
+        if ctx.subcommand_passed is None:
+            return await ctx.send_help(ctx.command)
+    
+    @staff()
+    @status.command(name="add")
+    async def _add(self, ctx:commands.Context, *, name:str):
+        """ Add a song to be displayed in status. """
+        from utils.songs import songs
+
+        if name not in songs:
+            songs.append(name)
+            return await ctx.send("Added successfully")
+        else:
+            return await ctx.send(f"{name} already in songs.")
+
+    @staff()
+    @status.command()
+    async def remove(self, ctx:commands.Context, *, name:str):
+        """ Removes a song in the status list. """
+        from utils.songs import songs
+        try:
+            songs.remove(name)
+            return await ctx.send("Successfully removed")
+        except ValueError:
+            return await ctx.send("The song doesn't seems to be in the songs list.")
+
+    @staff()
+    @status.command(name="list")
+    async def _list(self, ctx:commands.Context):
+        """ Lists all the status in the songs list. """
+        from utils.songs import songs
+
+        embed = discord.Embed(
+            colour=0x2F3136,
+            description = ", ".join([f"`{s}`" for s in songs])
+        )
+
+        return await ctx.send(embed=embed)
+        
 def setup(bot:DSCN):
     bot.add_cog(Config(bot))
