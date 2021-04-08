@@ -31,6 +31,7 @@ import traceback, sys
 from discord.ext import commands
 from discord.ext.commands.errors import CommandOnCooldown
 from utils.channel_logging import post_log, embed_builder
+from utils.errors import *
 
 class ErrorHandler(commands.Cog):
     """
@@ -118,6 +119,10 @@ class ErrorHandler(commands.Cog):
         elif isinstance(error, commands.MissingRequiredArgument):
             await ctx.send("Invalid command usage, follow the help:")
             await ctx.send_help(ctx.command)
+        
+        elif isinstance(error, (NotBotChannel, NotStaff)):
+            return await ctx.send(str(error))
+        
         else:
             embed = embed_builder(
                 bot = self.bot,
