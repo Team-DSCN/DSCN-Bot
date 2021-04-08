@@ -25,6 +25,7 @@ Contact: ItsArtemiz#8858 or https://discord.gg/2NVgaEwd2J
 
 import discord
 
+from datetime import datetime
 from discord.ext import commands, tasks
 from bot import DSCN, extensions
 from random import choice
@@ -146,10 +147,17 @@ class Config(commands.Cog):
 
         embed = discord.Embed(
             colour=0x2F3136,
-            description = ", ".join([f"`{s}`" for s in songs])
+            timestamp = datetime.utcnow()
         )
+        i = 1
+        d = ""
+        for s in songs:
+            d = f"{i}. `{s}`"
+            i+=1
+        embed.description = d
+        embed.set_footer(text="All songs queued for bot status")
 
         return await ctx.send(embed=embed)
-        
+
 def setup(bot:DSCN):
     bot.add_cog(Config(bot))

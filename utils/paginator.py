@@ -85,6 +85,7 @@ class TagPages(menus.ListPageSource):
                 converted.append(f"{i}. {TagPageEntry(entry=entry)}")
             elif isinstance(entry, str):
                 converted.append(f"{i}. {entry}")
+            i+=1
         
         super().__init__(converted, per_page=per_page)
 
