@@ -67,7 +67,7 @@ class Information(commands.Cog):
 
     @bot_channel()
     @commands.command(aliases=['ui','whois'])
-    async def userinfo(self, ctx:commands.Context, *, user:Union[discord.User, discord.Member]=None) -> None:
+    async def userinfo(self, ctx:commands.Context, *, user:discord.Member=None) -> None:
         """Shows information about the user."""
         
         if not user:
@@ -86,13 +86,9 @@ class Information(commands.Cog):
 
         e.add_field(name="Created at", value=self.format_date(user.created_at, minimum_unit="hours"), inline=False)
 
-        if isinstance(user, discord.Member):
-            e.add_field(name="Joined at", value=self.format_date(user.joined_at, minimum_unit="hours"), inline=False)
+        e.add_field(name="Joined at", value=self.format_date(user.joined_at, minimum_unit="hours"), inline=False)
 
-            e.add_field(name="Roles", value=", ".join([r.mention for r in user.roles if r != ctx.guild.default_role] or ['None']))
-
-        else:
-            e.description = "*This user is not in the server.*"
+        e.add_field(name="Roles", value=", ".join([r.mention for r in user.roles if r != ctx.guild.default_role] or ['None']))
 
         await ctx.send(embed=e)
 
