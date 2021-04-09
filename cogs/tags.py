@@ -229,7 +229,6 @@ class Tags(commands.Cog):
             await menu.start(ctx)
 
 
-    @bot_channel()
     @commands.group(invoke_without_command=True)
     async def tag(self, ctx:commands.Context, *, name:str):
         """ Shows a tag """
@@ -258,6 +257,7 @@ class Tags(commands.Cog):
             return await ctx.send("A tag by that name already exists.")
 
         await self.create_tag(ctx.author, name=name, content=content)
+        return await ctx.send(f"Successfully created the tag: {name}")
     
     @bot_channel()
     @tag.command(aliases=["-", "remove", "d"])

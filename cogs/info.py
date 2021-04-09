@@ -48,9 +48,9 @@ class Information(commands.Cog):
             The datetime object we need to humanize.
         **options
             All valid arguments for `humanize.precisedelta`.
-                minimum_unit: str
-                suppress: tuple
-                format: str
+                minimum_unit: str   (default to seconds)
+                suppress: tuple     (default to (), empty tuple)
+                format: str         (default to %0.0f)
 
         Returns
         -------
@@ -83,6 +83,16 @@ class Information(commands.Cog):
         e.set_author(name=str(user), icon_url=user.avatar_url, url=f"https://discord.com/users/{user.id}")
 
         e.add_field(name="ID", value=user.id)
+
+        e.add_field(name="Created at", value=self.format_date(user.created_at, minimum_unit="hours"), inline=False)
+
+        if isinstance(user, discord.Member):
+            e.add_field(name="Joined at", value=self.format_date(user.joined_at, minimum_unit="hours"), inline=False)
+
+            e.add_field(name="Roles", value=", ".join([r.mention for r in user.roles if r != ctx.guild.default_role] or ['None']))
+
+        else:
+            e.description = "*This user is not in the server.*"
 
         await ctx.send(embed=e)
 
@@ -144,7 +154,7 @@ class Information(commands.Cog):
 
         embed = discord.Embed(
             title=guild.name,
-            description=f"**ID**: {guild.id}\n**Owner**: {guild.owner}",
+            description=f"**ID**: {guild.id}",
             timestamp=guild.created_at,
             colour=self.bot.colour
         )
@@ -286,13 +296,13 @@ class Information(commands.Cog):
                   To change your name, please request a Producer or a Manager.
         `change`: The modification to be made.
         """
-        if option not in ("type","release"):
+        if option not in ("type","release","name"):
             return await ctx.send("Invalid option given.")
         doc = await self.bot.db.find_one({"name":{"$eq":name}})
 
         
         async def update():
-            await self.bot.db.update_one({"name":{"$eq":name}}, {option:{"$set":change}})
+            await self.bot.db.update_one({"name":{"$eq":name}}, {"$set":{option:change}})
 
         if doc:
             if doc["discord_id"] == ctx.author.id:
@@ -401,7 +411,20 @@ class Information(commands.Cog):
 
         await ctx.send(embed=embed)
 
+    @bot_channel()
+    @commands.command(aliases=["av"])
+    async def avatar(self, ctx:commands.Context, *, user:Union[discord.User, discord.Member]=None):
+        """ Shows avatar of a user. """
+        user = user or ctx.author
+        e = discord.Embed(
+            colour = self.bot.colour,
+            timestamp = datetime.utcnow()
+        )
+        e.set_footer(text=self.bot.footer)
+        e.set_author(name=str(user), url=f"https://discord.com/users/{user.id}")
+        e.set_image(url=user.avatar_url)
 
+        await ctx.send(embed=e)
 
 def setup(bot:commands.Bot):
     bot.add_cog(Information(bot))
