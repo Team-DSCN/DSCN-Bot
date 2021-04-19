@@ -75,8 +75,9 @@ class DSCN(commands.Bot):
         self.loop.create_task(self.create_session())
         self.colour = 0xce0037 #discord.Color.from_rgb(49, 255, 200) #Beta Colour
         
-        self.version = "1.1.4"
+        self.version = "1.1.5"
         self.footer = "DSCN"
+        self.prefix = prefix
 
         for cog in extensions:
             try:

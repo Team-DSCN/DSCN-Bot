@@ -422,5 +422,50 @@ class Information(commands.Cog):
 
         await ctx.send(embed=e)
 
+    async def send_prefix(self, channel:discord.TextChannel) -> discord.Message:
+        """Sends bot's prefix to the given channe.
+
+        Parameters
+        ----------
+        channel : discord.TextChannel
+            The channel to send the embed in.
+
+        Returns
+        -------
+        discord.Message
+            The message sent.
+        """
+        e = discord.Embed(colour = self.bot.colour, title="Bot's prefixes.")
+        p:list = list(self.bot.prefix)
+        p.append(self.bot.user.mention)
+
+        i = 1
+        description = ""
+        for prefix in p:
+            description += f"{i}. {prefix}\n"
+            i+=1
+
+        e.description = description
+        return await channel.send(embed=e)
+
+    @bot_channel()
+    @commands.command()
+    async def prefix(self, ctx:commands.Context):
+        """ Shows bot's prefix. """
+        await self.send_prefix(ctx.channel)
+
+
+    @commands.Cog.listener()
+    async def on_message(self, message:discord.Message):
+        if self.bot.user.mentioned_in(message):
+            content = message.content
+            mention1 = f"<@!{self.bot.user.id}>"
+            mention2 = f"<@{self.bot.user.id}>"
+            if content.startswith(mention1) and content.endswith(mention1):
+                await self.send_prefix(message.channel)
+            
+            elif content.startswith(mention2) and content.endswith(mention2):
+                await self.send_prefix(message.channel)
+            
 def setup(bot:commands.Bot):
     bot.add_cog(Information(bot))

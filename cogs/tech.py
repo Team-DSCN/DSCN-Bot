@@ -75,7 +75,7 @@ class Techspiration(commands.Cog):
             embed.set_author(name="Author: " + str(news['author']))
         description = news['description']
         if news['content']:
-            description = description + "\n" + news['content']
+            description = description + "\n" + str(news['content'])
         embed.description = description
         try:
             embed.set_image(url=news['image'])

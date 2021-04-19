@@ -155,7 +155,7 @@ class Config(commands.Cog):
             d += f"{i}. `{s}`\n"
             i+=1
         embed.description = d
-        embed.set_footer(text="All songs queued for bot status")
+        embed.set_footer(text="All songs queued for bot status. (Not in order)")
 
         return await ctx.send(embed=embed)
 
