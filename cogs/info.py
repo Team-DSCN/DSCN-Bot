@@ -282,7 +282,7 @@ class Information(commands.Cog):
         else:
             return await ctx.send(f"No artist was found by the given name: **{name}**")
 
-    @artist()
+    @staff()
     @artist_group.command(aliases=["edit"])
     async def update(self, ctx:commands.Context, name:str, option:str, change:str):
         """ Updates an existing field to the new change.
