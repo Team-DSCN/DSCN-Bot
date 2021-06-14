@@ -49,7 +49,7 @@ class Client:
         """
         client = AsyncIOMotorClient(uri, tz_aware=tz_aware, connect=connect, **kwargs)
         db = client[collection]
-        self.collection = db[collection]
+        self.Collection = db[collection]
 
     @property
     def collection(self) -> AsyncIOMotorCollection:
@@ -60,7 +60,7 @@ class Client:
         AsyncIOMotorCollection
             The collection.
         """
-        return self.collection
+        return self.Collection
 
     async def insert_one(self, document: dict, **kwargs) -> InsertOneResult:
         """Inserts a document into the collection.
