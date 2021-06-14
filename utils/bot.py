@@ -17,17 +17,21 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 from __future__ import annotations
-import aiohttp
 
+import aiohttp
 import discord
+import os
 
 from typing import Iterable
 from discord.ext import commands
 from utils.context import Context
+from utils.db import Client
 
 DESCRIPTION = """
 Hello World! I am a bot written by ItsArtemiz#8858 to provide some utilities.
 """
+
+URI = os.environ.get('DB_TOKEN')
 
 ALLOWEDMENTIONS = discord.AllowedMentions(
     everyone=False,
@@ -70,3 +74,9 @@ class Bot(commands.Bot):
         await self.wait_until_ready()
         if not hasattr(self, 'session'):
             self.session = aiohttp.ClientSession()
+        if not hasattr(self, 'artists'):
+            self.artists = Client(URI, 'DSCN', 'Artists')
+        if not hasattr(self, 'tags'):
+            self.tags = Client(URI, 'DSCN', 'Tags')
+        if not hasattr(self, 'utils'):
+            self.utils = Client(URI, 'DSCN', 'Utils')
