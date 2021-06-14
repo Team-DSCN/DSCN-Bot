@@ -22,16 +22,19 @@ import aiohttp
 import discord
 import os
 
-from typing import Iterable
+from typing import Iterable, Optional
+from datetime import datetime
 from discord.ext import commands
-from utils.context import Context
 from utils.db import Client
+from dotenv import load_dotenv
+load_dotenv()
 
 DESCRIPTION = """
 Hello World! I am a bot written by ItsArtemiz#8858 to provide some utilities.
 """
 
 URI = os.environ.get('DB_TOKEN')
+TOKEN = os.environ.get('BOT_TOKEN')
 
 ALLOWEDMENTIONS = discord.AllowedMentions(
     everyone=False,
@@ -48,6 +51,41 @@ async def get_pre(bot: Bot, message:discord.Message) -> Iterable[str]:
     else:
         base.extend(await bot.utils.find_one({'name':'prefixes'}))
     return base
+
+class Context(commands.Context):
+    bot: Bot
+    
+    def __init__(self, **attrs):
+        super().__init__(**attrs)
+        self.artists = self.bot.artists
+        self.utils = self.bot.utils
+        self.tags = self.bot.tags
+        
+    def __repr__(self) -> str:
+        return f'<Context>'
+    
+    @property
+    def session(self) -> aiohttp.ClientSession:
+        return self.bot.session
+    
+    def tick(self, opt:Optional[bool], label=None) -> str:
+        lookup = {
+            True:'<:yesTick:818793909982461962>',
+            False:'<:noTick:811230315648647188>',
+            None:'<:maybeTick:853693562113622077>'
+        }
+        
+        emoji = lookup.get(opt, '<:noTick:811230315648647188>')
+        if label is not None:
+            return f'{emoji}: {label}'
+        return emoji
+    
+    async def thumbsup(self) -> None:
+        try:
+            return await self.message.add_reaction('\N{THUMBS UP SIGN}')
+        except discord.HTTPException:
+            pass
+
 
 class Bot(commands.Bot):
     """The actual robot!!"""
@@ -66,6 +104,10 @@ class Bot(commands.Bot):
         )
         
         self.loop.create_task(self.create_session())
+
+        self.colour = 0xce0037
+        self.footer = 'DSCN'
+        self.version = '1.2.0'
         
     async def get_context(self, message:discord.Message, *, cls=Context):
         return await super().get_context(message, cls=cls)
@@ -80,3 +122,13 @@ class Bot(commands.Bot):
             self.tags = Client(URI, 'DSCN', 'Tags')
         if not hasattr(self, 'utils'):
             self.utils = Client(URI, 'DSCN', 'Utils')
+
+    async def on_ready(self) -> None:
+        print(f'READY: {self.user} (ID:{self.user.id})')
+
+        if not hasattr(self, 'uptime'):
+            self.uptime = datetime.utcnow()
+
+if __name__ == '__main__':
+    bot = Bot()
+    bot.run(TOKEN)

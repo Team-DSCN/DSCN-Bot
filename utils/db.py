@@ -48,8 +48,8 @@ class Client:
             MongoDB in the background. Otherwise connect on the first operation.
         """
         client = AsyncIOMotorClient(uri, tz_aware=tz_aware, connect=connect, **kwargs)
-
-        self.collection: AsyncIOMotorCollection = client[db][collection]
+        db = client[collection]
+        self.collection = db[collection]
 
     @property
     def collection(self) -> AsyncIOMotorCollection:
