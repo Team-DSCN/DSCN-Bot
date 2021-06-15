@@ -43,7 +43,7 @@ ALLOWEDMENTIONS = discord.AllowedMentions(
 
 EXTENSIONS = {
     'jishaku',
-    'cogs.test'
+    'cogs.artists'
 }
 
 async def get_pre(bot, message:discord.Message) -> Iterable[str]:
@@ -86,7 +86,7 @@ class Bot(commands.Bot):
             self.load_extension(extension)
     
         
-    async def get_context(self, message:discord.Message):
+    async def get_context(self, message:discord.Message, cls=None):
         # circular import, thanks python
         from utils.context import Context
         return await super().get_context(message, cls=Context)
@@ -97,10 +97,10 @@ class Bot(commands.Bot):
             self.session = aiohttp.ClientSession()
         if not hasattr(self, 'artists'):
             self.artists = Client(URI, 'DSCN', 'Artists')
-        if not hasattr(self, 'tags'):
-            self.tags = Client(URI, 'DSCN', 'Tags')
-        if not hasattr(self, 'utils'):
-            self.utils = Client(URI, 'DSCN', 'Utils')
+        # if not hasattr(self, 'tags'):
+        #     self.tags = Client(URI, 'DSCN', 'Tags')
+        # if not hasattr(self, 'utils'):
+        #     self.utils = Client(URI, 'DSCN', 'Utils')
 
     async def on_ready(self) -> None:
         print(f'READY: {self.user} (ID:{self.user.id})')

@@ -38,7 +38,7 @@ class Context(commands.Context):
     def session(self) -> aiohttp.ClientSession:
         return self.bot.session
     
-    def tick(self, opt:Optional[bool], label=None) -> str:
+    async def tick(self, opt:Optional[bool]) -> None:
         lookup = {
             True:'<:yesTick:818793909982461962>',
             False:'<:noTick:811230315648647188>',
@@ -46,9 +46,10 @@ class Context(commands.Context):
         }
         
         emoji = lookup.get(opt, '<:noTick:811230315648647188>')
-        if label is not None:
-            return f'{emoji}: {label}'
-        return emoji
+        try:
+            return await self.message.add_reaction(emoji)
+        except discord.HTTPException:
+            pass
     
     async def thumbsup(self) -> None:
         try:
