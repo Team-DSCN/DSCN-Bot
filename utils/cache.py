@@ -1,70 +1,72 @@
+"""
+MIT License
+
+Copyright (c) 2021 Augadh Verma
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
 import time
-import collections
+from typing import Any, TypeVar
 
-class TimedCache(collections.MutableMapping):
-    """Makes a timed cache. Deletes cache after the time has expired.
-    Parameters
-    ----------
-    seconds : int
-        The seconds to cache the item for. Defaults to 10800 seconds or 3 hours
-    """
-    def __init__(self, seconds=10800):
-        self._ttl = seconds
-        self._data = {}
+_KT = TypeVar('_KT')
+_VT = TypeVar('_VT')
 
-    def __getitem__(self, key):
-        if key not in self._data:
-            raise KeyError()
-        item = self._data[key]
-        if (time.time() - item[0]) < self._ttl:
-            return item[1]
-        else:
-            del self._data[key]
-            raise KeyError()
+class ExpiringCache(dict):
+    def __init__(self, seconds: int, *, case_insensitive: bool=False):
+        """Makes a timed cache. Deletes cache after the time has expired.
 
-    def __setitem__(self, key, value) -> None:
-        self._data[key] = (time.time(), value)
+        Returns the value as (value, time)
+        
+        Parameters
+        ----------
+        seconds : int
+            The seconds to cache items for.
+        case_insensitive : Optional[bool]
+            Whether to use a case insensitive dict or not. By default `False`.
+        """
+        self.__ttl = seconds
+        self.__case = case_insensitive
+        super().__init__()
 
-    def __delitem__(self, key):
-        if key not in self._data:
-            raise KeyError()
-        item = self._data[key]
-        del self._data[key]
-        if (time.time() - item[0]) >= self._ttl:
-            raise KeyError()
+    def __verify_cache_integrity(self) -> None:
+        current_time = time.monotonic()
+        to_remove = [k for (k, (v,t)) in self.items() if current_time > (t + self.__ttl)]
+        for k in to_remove:
+            del self[k]
 
-    def __contains__(self, key):
-        if key not in self._data:
-            return False
-        item = self._data[key]
-        if (time.time() - item[0]) < self._ttl:
-            return True
-        else:
-            del self._ttl[key]
-            return False
+    def __check_case_sensitive(self, key: _KT) -> Any:
+        if self.__case:
+            if isinstance(key, str):
+                return key.lower()
+        return key
 
-    def __len__(self) -> int:
-        length = 0 
-        now = time.time()
-        keys_to_delete = []
-        for key, value in self._data.items():
-            if (now - value[0]) < self._ttl:
-                length += 1
-            else:
-                keys_to_delete.append(key)
+    def __contains__(self, key: _KT) -> bool:
+        self.__verify_cache_integrity()
+        key = self.__check_case_sensitive(key)
+        return super().__contains__(key)
 
-        for key in keys_to_delete:
-            del self._data[key]
+    def __getitem__(self, key: _KT) -> _VT:
+        self.__verify_cache_integrity()
+        key = self.__check_case_sensitive(key)
+        return super().__getitem__(key)
 
-        return length
-
-    def __iter__(self):
-        keys_to_delete = []
-        for key, value in self._data.items():
-            if (time.time()- value[0]) < self._ttl:
-                yield key
-            else:
-                keys_to_delete.append(key)
-
-        for key in keys_to_delete:
-            del self._data[key]
+    def __setitem__(self, k: _KT, v: _VT) -> None:
+        k = self.__check_case_sensitive(k)
+        return super().__setitem__(k, (v, time.monotonic()))
