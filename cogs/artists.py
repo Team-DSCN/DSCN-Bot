@@ -3,27 +3,48 @@ from __future__ import annotations
 
 import discord
 
-from discord.ext import commands
+from discord.ext import commands, tasks
+from difflib import get_close_matches
 
 from utils.bot import Bot
 from utils.context import Context
 from utils.flags import ArtistAdd
-from utils.cache import TimedCache
+from utils.cache import ExpiringCache
 
 class Artists(commands.Cog):
     def __init__(self, bot: Bot):
         self.bot = bot
-        self.cache = TimedCache(seconds=60)
-        
+        self.cache = ExpiringCache(seconds=60, case_insensitive=True)
+        self.update_artist.start()
+
+    def cog_unload(self):
+        self.update_artist.cancel()
+
+    @tasks.loop(seconds=60)
+    async def update_artist(self) -> None:
+        async for document in self.bot.artists.find({}):
+            self.cache[document['name']] = document
+
+    @update_artist.before_loop
+    async def before_artist_update(self) -> None:
+        await self.bot.wait_until_ready()
+
     @commands.group(invoke_without_command=True)
     async def artist(self, ctx: Context, *, name:str):
-        document = self.cache.get(name.lower())
+        document = self.cache.get(name)
         if document is None:
             document = await ctx.bot.artists.find_one({'name':name})
             if document is None:
-                return await ctx.send('Couldn\'t find the artist with the given name.')
+                artists = self.cache.keys()
+                match = get_close_matches(name, artists, 1)
+                if match:
+                    return await ctx.send(f'Artist "{name}" not found. Did you mean "{match[0]}"')
+                else:
+                    return await ctx.send(f'Artist "{name}" not found.')
             else:
-                self.cache[document['name'].lower()] = document
+                self.cache[document['name']] = document
+        else:
+            document = document[0]
             
         embed = discord.Embed(
             colour = self.bot.colour,
@@ -51,7 +72,7 @@ class Artists(commands.Cog):
         if isinstance(avatar, discord.User):
             avatar = avatar.avatar.url
             
-        if name.lower() in self.cache.keys():
+        if name in self.cache.keys():
             return await ctx.send('Artist with the given name already exists in our database.')
         
         document = {
@@ -62,7 +83,7 @@ class Artists(commands.Cog):
             'added':added
         }
         await ctx.bot.artists.insert_one(document=document)
-        self.cache[name.lower()] = document
+        self.cache[name] = document
         
         embed = discord.Embed(
             colour = discord.Colour.green(),
