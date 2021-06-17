@@ -38,6 +38,18 @@ class Context(commands.Context):
     def session(self) -> aiohttp.ClientSession:
         return self.bot.session
     
+    @property
+    def branding(self) -> str:
+        return self.bot.branding
+    
+    @property
+    def colour(self) -> int:
+        return self.bot.colour
+    
+    @property
+    def footer(self) -> str:
+        return str(self.author)
+    
     async def tick(self, opt:Optional[bool]) -> None:
         lookup = {
             True:'<:yesTick:818793909982461962>',
