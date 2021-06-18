@@ -78,7 +78,7 @@ class Bot(commands.Bot):
         
         self.loop.create_task(self.create_session())
 
-        self.colour =   
+        self.colour = 0xce0037
         self.branding = 'DSCN'
         self.version = '1.2.0'
         
