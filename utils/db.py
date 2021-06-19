@@ -27,9 +27,10 @@ from pymongo.results import (
     InsertOneResult,
     UpdateResult
 )
+from utils.errors import CollectionNotSet
 
 class Client:
-    def __init__(self, uri: str, db: str, collection: str, *, tz_aware=True, connect=True, **kwargs):
+    def __init__(self, uri: str, db: str, collection: str = None, *, tz_aware=True, connect=True, **kwargs):
         """Client for a MongoDB Operations.
 
         Parameters
@@ -38,7 +39,7 @@ class Client:
             The URI or the host used to log into MongoDB.
         db : str
             The database to access.
-        collection : str
+        collection : Optional[str]
             The collection of the database to access.
         tz_aware : Optional[bool]
             :class:`datetime.datetime` instances returned as values in a document by this
@@ -49,8 +50,20 @@ class Client:
         """
         client = AsyncIOMotorClient(uri, tz_aware=tz_aware, connect=connect, **kwargs)
         db = client[db]
-        self._collection = db[collection]
+        self.db = db
+        if collection:
+            self._collection = db[collection]
 
+    def set_collection(self, collection: str) -> None:
+        """Sets a collection.
+
+        Parameters
+        ----------
+        collection : str
+            The name of the collection to set or to use the operations on.
+        """
+        self._collection = self.db[collection]
+        
     @property
     def collection(self) -> AsyncIOMotorCollection:
         """The collection initiated for the client.
@@ -60,6 +73,8 @@ class Client:
         AsyncIOMotorCollection
             The collection.
         """
+        if self._collection is None:
+            raise CollectionNotSet('no collection has been set')
         return self._collection
 
     async def insert_one(self, document: dict, **kwargs) -> InsertOneResult:
