@@ -7,8 +7,7 @@ from discord.ext.menus import First, Last
 
 class RoboPages(menus.MenuPages, inherit_buttons=False):
     def __init__(self, source, *args, **kwargs):
-        delete_message_after = kwargs.pop('delete_message_after', True)
-        super().__init__(source, delete_message_after=delete_message_after, check_embeds=True, *args, **kwargs)
+        super().__init__(source=source, check_embeds=True, *args, **kwargs)
         self.input_lock = asyncio.Lock()
     
     async def finalize(self, timed_out):
@@ -26,42 +25,39 @@ class RoboPages(menus.MenuPages, inherit_buttons=False):
     def _skip_when_short(self):
         return self.source.get_max_pages() <=1
     
-    async def remove_reaction(self, emoji, payload):
-        user = self.bot.get_user(payload.user_id)
-        try:
-            await self.message.remove_reaction(emoji, user)
-        except Exception as e:
-            print(e)
+    # Disabling because discord-ext-menus paginate on both reaction add and remove.
+
+    # async def remove_reaction(self, emoji, payload):
+    #     user = self.bot.get_user(payload.user_id)
+    #     try:
+    #         await self.message.remove_reaction(emoji, user)
+    #     except discord.Forbidden:
+    #         pass
         
     @menus.button('<:first:855373614642888714>', position=First(0), skip_if=_skip_when)
     async def rewind(self, payload):
         """Goes to first page."""
         await self.show_page(0)
-        await self.remove_reaction('<:first:855373614642888714>', payload)
 
     @menus.button('<:previous:855373614299086859>', position=First(1), skip_if=_skip_when_short)
     async def back(self, payload):
         """Goes to the previous page."""
         await self.show_checked_page(self.current_page - 1)
-        await self.remove_reaction('<:previous:855373614299086859>', payload)
 
     @menus.button('<:stop:855373614618116097>', position=First(2))
     async def stop_menu(self, payload):
         """Removes this message."""
         self.stop()
-        await self.remove_reaction('<:stop:855373614618116097>', payload)
 
     @menus.button('<:next:855373615012380692>', position=Last(0), skip_if=_skip_when_short)
     async def forward(self, payload):
         """Goes to the next page."""
         await self.show_checked_page(self.current_page + 1)
-        await self.remove_reaction('<:next:855373615012380692>', payload)
 
     @menus.button('<:last:855373614907129876>', position=Last(1), skip_if=_skip_when)
     async def fastforward(self, payload):
         """Goes to the last page."""
         await self.show_page(self._source.get_max_pages() - 1)
-        await self.remove_reaction('<:last:855373614907129876>', payload)
 
     @menus.button('<:info:855373614625587241>', position=Last(2))
     async def show_information_page(self, payload):
@@ -111,13 +107,28 @@ class RoboPages(menus.MenuPages, inherit_buttons=False):
                 page = int(msg.content)
                 to_delete.append(msg)
                 await self.show_checked_page(page - 1)
-            finally:
-                await self.remove_reaction('<:number:855414332300591146>', payload)
                 
             try:
                 await channel.delete_messages(to_delete)
             except Exception:
                 pass
+
+    async def send_initial_message(self, ctx, channel):
+        # Have to do this because apparently setting inherit_buttons to False
+        # didn't do anything.
+        reactions = {
+            '\N{BLACK LEFT-POINTING DOUBLE TRIANGLE WITH VERTICAL BAR}\ufe0f',
+            '\N{BLACK LEFT-POINTING TRIANGLE}\ufe0f',
+            '\N{BLACK RIGHT-POINTING TRIANGLE}\ufe0f',
+            '\N{BLACK RIGHT-POINTING DOUBLE TRIANGLE WITH VERTICAL BAR}\ufe0f',
+            '\N{BLACK SQUARE FOR STOP}\ufe0f'
+        }
+        for reaction in reactions:
+            try:
+                self.remove_button(reaction)
+            except discord.HTTPException:
+                pass
+        return await super().send_initial_message(ctx, channel)
         
             
 class ArtistEntry:
@@ -127,6 +138,7 @@ class ArtistEntry:
         self.playlist = artist.playlist
         self.added = artist.added
         self.avatar = artist.avatar
+        self.searches = artist.searches
 
     def __str__(self) -> str:
         return (
@@ -137,7 +149,8 @@ class ArtistEntry:
         )
 
 class ArtistPageSource(menus.ListPageSource):
-    def __init__(self, entries, *, per_page=1):
+    def __init__(self, entries, *, per_page=1, show_searches=False):
+        self.show_searches = show_searches
         super().__init__(entries, per_page=per_page)
         
     async def format_page(self, menu: menus.Menu, entries):
@@ -146,15 +159,18 @@ class ArtistPageSource(menus.ListPageSource):
         menu.embed.set_thumbnail(url=entries.avatar)
             
         maximum = self.get_max_pages()
-        if maximum > 1:
+        if maximum > 1 and not self.show_searches:
             footer = f'Page {menu.current_page+1}/{maximum} (Total {len(self.entries)} Artists)'
+            menu.embed.set_footer(text=footer)
+        elif maximum > 1 and self.show_searches:
+            footer = f'Page {menu.current_page+1}/{maximum} (Total {entries.searches} searches)'
             menu.embed.set_footer(text=footer)
             
         menu.embed.description = '\n'.join(pages)
         return menu.embed
     
 class ArtistPages(RoboPages):
-    def __init__(self, entries, *, per_page=1):
+    def __init__(self, entries, *, per_page=1, show_searches=False):
         converted = [ArtistEntry(entry) for entry in entries]
-        super().__init__(ArtistPageSource(converted, per_page=per_page))
+        super().__init__(ArtistPageSource(converted, per_page=per_page, show_searches=show_searches))
         self.embed = discord.Embed(colour=0xce0037)
