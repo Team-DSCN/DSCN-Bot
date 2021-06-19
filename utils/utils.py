@@ -1,7 +1,12 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional
+
+from discord.message import Message
+from utils.bot import Bot
 import discord
 import humanize
+
+DSCN_GUILD = 781796557490094100
 
 class Artist:
     def __init__(self, data: dict):
@@ -58,3 +63,41 @@ def human_time(dt:datetime, **options) -> str:
     if dt is None:
         return 'N/A'
     return f"{humanize.precisedelta(discord.utils.utcnow() - dt, minimum_unit=minimum_unit, suppress=suppress, format=format)} ago"
+
+async def log(
+    bot: Bot,
+    guild: discord.Guild,
+    **kwargs
+) -> Optional[discord.Message]:
+    """Logs a message to a
+
+    Parameters
+    ----------
+    bot : Bot
+        To search whether a log channel is set or not.
+    guild : Guild
+        The guild to use.
+    kwargs : The kwargs used to send a message.
+
+    Returns
+    -------
+    Optional[discord.Message]
+        Returns a `Message` if sent.
+    """
+    settings = await bot.utils.find_one({'guildId':guild.id})
+    if settings is None or settings.get('log', None) is None:
+        return
+    
+    channel_id = settings['log']
+
+    channel = guild.get_channel(channel_id)
+    if channel is None:
+        channel = await guild.fetch_channel(channel_id)
+        
+    if channel is None:
+        return
+    
+    try:
+        return await channel.send(**kwargs)
+    except discord.HTTPException:
+        pass
