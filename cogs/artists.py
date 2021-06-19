@@ -1,10 +1,11 @@
 
 from __future__ import annotations
 import asyncio
+from utils.paginator import ArtistPages
 
 import discord
 
-from discord.ext import commands, tasks
+from discord.ext import commands, menus, tasks
 from difflib import get_close_matches
 from datetime import datetime
 from typing import List, Union
@@ -183,6 +184,19 @@ class Artists(commands.Cog):
                 return await ctx.send('Aborting...')
             else:
                 return await ctx.send('Invalid option provided. Aborting...')
+            
+    @artist.command(name='all')
+    async def all_artists(self, ctx:commands.Context):
+        artists: List[Artist] = []
+        async for document in ctx.bot.artists.find({}):
+            artists.append(Artist(document))
+            
+        try:
+            p = ArtistPages(artists)
+        except menus.MenuError as e:
+            await ctx.send(e)
+        else:
+            await p.start(ctx)
         
 def setup(bot: Bot):
     bot.add_cog(Artists(bot))
