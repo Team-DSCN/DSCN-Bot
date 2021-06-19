@@ -34,6 +34,10 @@ Hello World! I am a bot written by ItsArtemiz#8858 to provide some utilities.
 URI = os.environ.get('DB_TOKEN')
 TOKEN = os.environ.get('BOT_TOKEN')
 
+os.environ["JISHAKU_NO_UNDERSCORE"] = "True"
+os.environ["JISHAKU_NO_DM_TRACEBACK"] = "True" 
+os.environ["JISHAKU_HIDE"] = "True"
+
 ALLOWEDMENTIONS = discord.AllowedMentions(
     everyone=False,
     users=True,
