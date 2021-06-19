@@ -13,40 +13,9 @@ from typing import List, Union
 from utils.bot import Bot
 from utils.context import Context
 from utils.flags import ArtistAdd, ArtistEdit
-from utils.cache import ExpiringCache
 from utils.checks import admin
+from utils.utils import Artist
 
-class Artist:
-    def __init__(self, data: dict):
-        self.name: str = data['name']
-        self.music: str = data['music']
-        self.playlist: str = data['playlist']
-        self.avatar: str = data['avatar']
-        self.added: datetime = data['added']
-        self.searches: int = data.get('searches', 0)
-        self.aliases: List[str] = data.get('aliases', [])
-        
-    def __repr__(self) -> str:
-        return (f'<Artist name="{self.name}" music="{self.music}" added={self.added!r}'
-                f' playlist="<{self.playlist}>" searches={self.searches} aliases={self.aliases!r}'
-                f' avatar="<{self.avatar}>">'
-        )
-    
-    @property
-    def embed(self) -> discord.Embed:
-        e = discord.Embed(
-            colour = 0xce0037,
-            timestamp = self.added
-        )
-        
-        e.add_field(name='Name', value=self.name)
-        e.add_field(name='Music', value=self.music)
-        e.add_field(name='Playlist', value=self.playlist, inline=False)
-        
-        e.set_footer(text='With DSCN since')
-        e.set_thumbnail(url=self.avatar)
-
-        return e
     
 class Artists(commands.Cog):
     def __init__(self, bot: Bot):
