@@ -15,6 +15,6 @@ def botchannel():
         if settings is None:
             return True
         if ctx.channel.id in settings.get('disabledChannels', []):
-            raise NotBotChannel(f'Cannot use bot commands in {ctx.channel} since it is not whitelisted.')
+            raise NotBotChannel(f'Cannot use bot commands in #{ctx.channel.name} since it is not whitelisted.')
         return True
     return commands.check(predicate)

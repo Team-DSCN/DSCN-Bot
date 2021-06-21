@@ -119,7 +119,7 @@ class Info(commands.Cog):
         await ctx.send(embed=embed)
     
     @commands.has_guild_permissions(manage_guild=True)
-    @commands.group(invoke_without_command=True)
+    @commands.group(invoke_without_command=True, aliases=['setting'])
     async def settings(self, ctx: Context):
         """Shows settings of your guild for the bot."""
         settings = await self.bot.utils.find_one({'guildId':ctx.guild.id})
@@ -250,7 +250,7 @@ class Info(commands.Cog):
         )
         
         await ctx.tick(True)
-        await ctx.send(f'Commands succesfully **{update}** for the current channel!')
+        await ctx.send(f'Commands succesfully **{update}** for `{channel.name}`!')
     @commands.has_guild_permissions(manage_guild=True)
     @commands.command()
     async def setup(self, ctx: Context):
