@@ -13,7 +13,7 @@ from typing import List, Union
 from utils.bot import Bot
 from utils.context import Context
 from utils.flags import ArtistAdd, ArtistEdit
-from utils.checks import admin
+from utils.checks import admin, botchannel
 from utils.utils import Artist
 
     
@@ -79,6 +79,7 @@ class Artists(commands.Cog):
                     await ctx.send(f'Artist "{name}" not found.')
             return
     
+    @botchannel()
     @commands.group(invoke_without_command=True)
     async def artist(self, ctx: Context, *, name:str):
         """Shows info about an artist."""
@@ -208,7 +209,8 @@ class Artists(commands.Cog):
                 return await ctx.send('Aborting...')
             else:
                 return await ctx.send('Invalid option provided. Aborting...')
-            
+
+    @botchannel()            
     @artist.command(name='all')
     async def all_artists(self, ctx:Context):
         """Shows all the artists with DSCN"""
@@ -228,7 +230,8 @@ class Artists(commands.Cog):
         else:
             await p.start(ctx)
 
-    @artist.command(name='popular', hidden=False)
+    @botchannel()
+    @artist.command(name='popular', hidden=True)
     async def popular_artists(self, ctx:Context):
         """Shows artists based on most artist searches using the bot.
         
@@ -250,6 +253,7 @@ class Artists(commands.Cog):
         else:
             await p.start(ctx)
 
+    @botchannel()
     @artist.command(name='raw', aliases=['repr'], hidden=True)
     async def reprartist(self, ctx: Context, *, name:str):
         """If you now you know"""
