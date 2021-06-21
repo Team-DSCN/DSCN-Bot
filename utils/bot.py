@@ -59,10 +59,14 @@ async def get_pre(bot, message:discord.Message) -> Iterable[str]:
     else:
         settings: dict = await bot.utils.find_one({'guildId':message.guild.id})
         if settings:
-            base.extend(settings.get('prefixes', []))
+            prefixes = settings.get('prefixes', ['.'])
+            if prefixes:
+                base.extend(prefixes)
+            else:
+                base.append('.')
         else:
             base.append('.')
-    return base
+    return list(set(base))
 
 class Bot(commands.Bot):
     """The actual robot!!"""
