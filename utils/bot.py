@@ -48,7 +48,9 @@ ALLOWEDMENTIONS = discord.AllowedMentions(
 EXTENSIONS = {
     'jishaku',
     'cogs.artists',
-    'cogs.info'
+    'cogs.info',
+    'cogs.error_handler',
+    'cogs.logging'
 }
 
 async def get_pre(bot, message:discord.Message) -> Iterable[str]:
