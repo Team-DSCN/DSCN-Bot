@@ -80,67 +80,64 @@ class Artists(commands.Cog):
             return
     
     @botchannel()
-    @commands.group(invoke_without_command=True)
-    async def artist(self, ctx: Context, *, name:str):
-        """Shows info about an artist."""
+    @commands.group(name='artist', invoke_without_command=True)
+    async def artist(self, ctx: Context, *, name: str):
+        """Shows an info"""
         artist = await self.get_artist(ctx, name, to_return=True, update_search=True)
         if not artist:
             return
         await ctx.send(embed=artist.embed)
-    
-    @admin
-    @artist.command(
-        name='add',
-        usage='flags(name: <name> music: <music style> playlist: <YouTube playlist> avatar: [User | str])'
-    )
-    async def add_artist(self, ctx:Context, *, flag: ArtistAdd):
-        """Adds an artist to the database.
         
-        Note: The flags don't have a specific order."""
+    @admin
+    @artist.command(name='add')
+    async def addartist(self, ctx: Context, *, flag: ArtistAdd):
+        """Adds an artist."""
         artist = await self.get_artist(ctx, flag.name)
         if artist:
-            await ctx.send(f'Artist "{flag.name}" is already registered with us:\n{artist}')
-            return
+            return await ctx.send('Artist already exists!', embed=artist.embed)
         
-        avatar = flag.avatar
+        avatar = flag.avatar or ctx.guild.icon.url
+        
         if isinstance(avatar, discord.User):
             avatar = avatar.avatar.url
-            
-        added = discord.utils.utcnow()
         
         document = {
             'name':flag.name,
             'music':flag.music,
-            'playlist':flag.playlist,
+            'release':flag.release,
             'avatar':avatar,
-            'added':added,
-            'aliases':[],
-            'searches':0
+            'added':discord.utils.utcnow(),
+            'searches':0,
+            'aliases':[]
         }
         
         await ctx.bot.artists.insert_one(document)
-        artist = Artist(document)
-        
-        embed = artist.embed
-        
-        embed.colour = discord.Colour.green()
-        embed.title = 'Artist Added Succesfully'
-        embed.set_footer(text=ctx.footer, icon_url=ctx.author.avatar.url)
         
         await ctx.tick(True)
-        await ctx.send(embed=embed)
+        await ctx.send(
+            'Artist added successfully!',
+            embed = Artist(document).embed
+        )
         
     @admin
-    @artist.command(
-        name='modify', 
-        aliases=['edit', 'm', 'e'],
-        usage='<name> flags(name: [new name] music: [music] playlist: [YouTube playlist] avatar: [User | str] aliases: [name1, name2])'
-    )
-    async def artist_edit(self, ctx:Context, name:str, *, flag:ArtistEdit):
-        """Modifies field(s) for the artist in our database."""
+    @artist.command(name='delete')
+    async def delartist(self, ctx: Context, *, name: str):
+        """Deletes an artist."""
+        artist = await self.get_artist(ctx, name)
+        if not artist:
+            return await ctx.send(f'Artist "{name}" does not exist in our database.')
+        
+        await self.bot.artists.delete_one({'name':artist.name})
+        await ctx.tick(True)
+        
+    @admin
+    @artist.command(name='modify', aliases=['edit', 'm', 'e'])
+    async def editartist(self, ctx: Context, name, *, flag: ArtistEdit):
+        """Modifies an artist."""
         artist = await self.get_artist(ctx, name, to_return=True)
         if not artist:
             return
+        
         if artist.avatar and flag.avatar is None:
             avatar = artist.avatar
         else:
@@ -148,10 +145,10 @@ class Artists(commands.Cog):
         
         if isinstance(avatar, discord.User):
             avatar = avatar.avatar.url
-        
+            
         if not avatar.startswith('http'):
             return await ctx.send('Invalid avatar given. Avatars must start with "http(s)". You may also give a discord user.')
-
+        
         if flag.aliases:
             aliases = flag.aliases.replace(', ', ',').replace(' ,', ',').split(',')
             aliases.extend(artist.aliases)
@@ -163,7 +160,7 @@ class Artists(commands.Cog):
         document = {
             'name':flag.name or artist.name,
             'music':flag.music or artist.music,
-            'playlist':flag.playlist or artist.playlist,
+            'release':flag.release or artist.release,
             'avatar':avatar or artist.avatar,
             'added':artist.added,
             'searches':artist.searches,
@@ -183,84 +180,44 @@ class Artists(commands.Cog):
         await ctx.tick(True)
         await ctx.send(embed=embed)
         
-    @admin
-    @artist.command(name='delete', aliases=['remove', 'd'])
-    async def del_artist(self, ctx: Context, *, name:str):
-        """Deletes an artist from the database."""
-        artist = await self.get_artist(ctx, name, to_return=True)
-        if not artist:
-            return
-        
-        await ctx.send('Are you sure you want to delete the artist? (Y/N)\nSay `cancel` to abort.', embed=artist.embed)
-        
-        def check(msg: discord.Message):
-            return msg.channel == ctx.channel and msg.author == ctx.author
-        
-        try:
-            msg:discord.Message = await self.bot.wait_for('message', check=check, timeout=30.0)
-        except asyncio.TimeoutError:
-            return await ctx.send('Took to long to answer. Aborting...')
-        else:
-            if msg.content.lower() in ('yes', 'y'):
-                await ctx.bot.artists.delete_one({'name':artist.name})
-                await ctx.tick(True)
-                await ctx.send('Successfully Deleted the Artist.')
-            elif msg.content.lower() in ('no', 'n', 'cancel', 'abort'):
-                return await ctx.send('Aborting...')
-            else:
-                return await ctx.send('Invalid option provided. Aborting...')
-
-    @botchannel()            
+    @botchannel()
     @artist.command(name='all')
-    async def all_artists(self, ctx:Context):
-        """Shows all the artists with DSCN"""
-        artists: List[Artist] = []
+    async def allartists(self, ctx: Context):
+        """Shows all artists."""
+        
+        artists: list[Artist] = []
         async for document in ctx.bot.artists.find({}):
             artists.append(Artist(document))
-
-        def key(a):
-            return a.added
-
-        artists.sort(key=key)
             
+        artists.sort(key=lambda a: a.added)
+        
         try:
             p = ArtistPages(artists)
         except menus.MenuError as e:
             await ctx.send(e)
         else:
             await p.start(ctx)
-
+            
     @botchannel()
-    @artist.command(name='popular', hidden=True)
-    async def popular_artists(self, ctx:Context):
+    @artist.command(name='popular')
+    async def popartists(self, ctx: Context):
         """Shows artists based on most artist searches using the bot.
         
         This in no way represent the actual popularity of an artist and
-        should not be used to compile any data for an artists popularity."""
-        artists: List[Artist] = []
+        should not be used to compile any data for an artists popularity.
+        """
+        artists: list[Artist] = []
         async for document in ctx.bot.artists.find({}):
             artists.append(Artist(document))
-
-        def key(a: Artist):
-            return a.searches
-
-        artists.sort(key=key, reverse=True)
-
+            
+        artists.sort(key=lambda a: a.searches)
+        
         try:
             p = ArtistPages(artists, show_searches=True)
         except menus.MenuError as e:
             await ctx.send(e)
         else:
             await p.start(ctx)
-
-    @botchannel()
-    @artist.command(name='raw', aliases=['repr'], hidden=True)
-    async def reprartist(self, ctx: Context, *, name:str):
-        """If you now you know"""
-        artist = await self.get_artist(ctx, name, to_return=True)
-        if not artist:
-            return
-        await ctx.send(repr(artist))
         
 def setup(bot: Bot):
     bot.add_cog(Artists(bot))

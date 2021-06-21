@@ -11,7 +11,7 @@ class Artist:
     def __init__(self, data: dict):
         self.name: str = data['name']
         self.music: str = data['music']
-        self.playlist: str = data['playlist']
+        self.release: str = data['release']
         self.avatar: str = data['avatar']
         self.added: datetime = data['added']
         self.searches: int = data.get('searches', 0)
@@ -19,7 +19,7 @@ class Artist:
         
     def __repr__(self) -> str:
         return (f'<Artist name="{self.name}" music="{self.music}" added={self.added!r}'
-                f' playlist="<{self.playlist}>" searches={self.searches} aliases={self.aliases!r}'
+                f' playlist="<{self.release}>" searches={self.searches} aliases={self.aliases!r}'
                 f' avatar="<{self.avatar}>">'
         )
     
@@ -32,7 +32,7 @@ class Artist:
         
         e.add_field(name='Name', value=self.name)
         e.add_field(name='Music', value=self.music)
-        e.add_field(name='Playlist', value=self.playlist, inline=False)
+        e.add_field(name='Release', value=self.release, inline=False)
         
         e.set_footer(text='With DSCN since')
         e.set_thumbnail(url=self.avatar)

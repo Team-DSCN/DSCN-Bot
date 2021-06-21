@@ -135,7 +135,7 @@ class ArtistEntry:
     def __init__(self, artist):
         self.name = artist.name
         self.music = artist.music
-        self.playlist = artist.playlist
+        self.release = artist.release
         self.added = artist.added
         self.avatar = artist.avatar
         self.searches = artist.searches
@@ -145,7 +145,7 @@ class ArtistEntry:
             f'**Name:** {self.name}\n'
             f'**Music:** {self.music}\n'
             f'**With DSCN since:** {datetime.strftime(self.added, "%d/%m/%Y")}\n'
-            f'**Playlist:** {self.playlist}'
+            f'**Release:** {self.release}'
         )
 
 class ArtistPageSource(menus.ListPageSource):
