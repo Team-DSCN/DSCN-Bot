@@ -1,7 +1,6 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Union
 
-from discord.message import Message
 from utils.bot import Bot
 import discord
 import humanize
@@ -101,3 +100,44 @@ async def log(
         return await channel.send(**kwargs)
     except discord.HTTPException:
         pass
+
+class Embed(discord.Embed):
+    def __init__(
+        self,
+        author: Optional[discord.User],
+        colour: Optional[Union[discord.Colour, int]] = 0xce0037,
+        timestamp: Optional[datetime] = discord.utils.utcnow(),
+        footer: str = 'DSCN',
+        **kwargs
+    ):
+        if author:
+            self.set_author(
+                name = str(author),
+                icon_url= author.avatar.url
+            )
+        
+        self.set_footer(text=footer)
+        
+        super().__init__(
+            colour = colour,
+            timestamp = timestamp,
+            **kwargs
+        )
+        
+    async def send(self, channel: discord.TextChannel) -> Optional[discord.Message]:
+        """Sends the embed made to the channel specified.
+
+        Parameters
+        ----------
+        channel : discord.TextChannel
+            The channel to send the embed to.
+
+        Returns
+        -------
+        Optional[discord.Message]
+            The message sent.
+        """
+        try:
+            return await channel.send(embed = self)
+        except discord.HTTPException:
+            pass
