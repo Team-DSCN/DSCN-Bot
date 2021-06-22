@@ -1,15 +1,12 @@
 
 from __future__ import annotations
-import asyncio
-from utils.paginator import ArtistPages
 
 import discord
 
-from discord.ext import commands, menus, tasks
+from discord.ext import commands, menus
 from difflib import get_close_matches
-from datetime import datetime
-from typing import List, Union
 
+from utils.paginator import ArtistPages
 from utils.bot import Bot
 from utils.context import Context
 from utils.flags import ArtistAdd, ArtistEdit
@@ -48,7 +45,7 @@ class Artists(commands.Cog):
         Union[Artist, None]
             The artist if found.
         """
-        artists: List[Artist] = []
+        artists: list[Artist] = []
         async for document in ctx.bot.artists.find({}):
             artists.append(Artist(document))
 
@@ -88,7 +85,7 @@ class Artists(commands.Cog):
             return
         await ctx.send(embed=artist.embed)
         
-    @admin
+    @admin()
     @artist.command(name='add')
     async def addartist(self, ctx: Context, *, flag: ArtistAdd):
         """Adds an artist."""
@@ -119,7 +116,7 @@ class Artists(commands.Cog):
             embed = Artist(document).embed
         )
         
-    @admin
+    @admin()
     @artist.command(name='delete')
     async def delartist(self, ctx: Context, *, name: str):
         """Deletes an artist."""
@@ -130,7 +127,7 @@ class Artists(commands.Cog):
         await self.bot.artists.delete_one({'name':artist.name})
         await ctx.tick(True)
         
-    @admin
+    @admin()
     @artist.command(name='modify', aliases=['edit', 'm', 'e'])
     async def editartist(self, ctx: Context, name, *, flag: ArtistEdit):
         """Modifies an artist."""
