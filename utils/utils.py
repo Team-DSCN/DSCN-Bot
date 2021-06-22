@@ -107,7 +107,7 @@ async def log(
 class Embed(discord.Embed):
     def __init__(
         self,
-        author: Optional[discord.User],
+        author: Optional[discord.User] = None,
         colour: Optional[Union[discord.Colour, int]] = 0xce0037,
         timestamp: Optional[datetime] = discord.utils.utcnow(),
         footer: str = 'DSCN',
