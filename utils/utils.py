@@ -1,9 +1,12 @@
-from datetime import datetime
-from typing import List, Optional, Union
+from __future__ import annotations
 
-from utils.bot import Bot
 import discord
 import humanize
+
+from datetime import datetime
+from utils.bot import Bot
+from typing import Optional, Union
+from discord.ext import commands
 
 DSCN_GUILD = 781796557490094100
 
@@ -15,7 +18,7 @@ class Artist:
         self.avatar: str = data['avatar']
         self.added: datetime = data['added']
         self.searches: int = data.get('searches', 0)
-        self.aliases: List[str] = data.get('aliases', [])
+        self.aliases: list[str] = data.get('aliases', [])
         
     def __repr__(self) -> str:
         return (f'<Artist name="{self.name}" music="{self.music}" added={self.added!r}'
@@ -83,7 +86,7 @@ async def log(
     Optional[discord.Message]
         Returns a `Message` if sent.
     """
-    settings = await bot.utils.find_one({'guildId':guild.id})
+    settings = await bot.settings.find_one({'guildId':guild.id})
     if settings is None or settings.get('log', None) is None:
         return
     
@@ -141,3 +144,38 @@ class Embed(discord.Embed):
             return await channel.send(embed = self)
         except discord.HTTPException:
             pass
+        
+def command_usage(object: commands.Command | commands.Group) -> str:
+    """Returns the command usage for a command.
+
+    Parameters
+    ----------
+    object : Union[Command, Group]
+        The command to get the usage for.
+
+    Returns
+    -------
+    str
+        The command usage.
+    """
+    if object.signature:
+        return f'{object.qualified_name} {object.signature}'
+    else:
+        return object.qualified_name
+    
+def command_help(object: commands.Command | commands.Group) -> str:
+    """To get the command's docstring.
+
+    Parameters
+    ----------
+    object : Union[Command, Group]
+        The command for which help is needed.
+
+    Returns
+    -------
+    str
+        The command's help.
+    """
+    if object.help:
+        return object.help
+    return 'No help provided... '
