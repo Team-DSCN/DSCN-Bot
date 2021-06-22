@@ -5,6 +5,7 @@ import discord
 
 from discord.ext import commands, menus
 from difflib import get_close_matches
+from typing import Optional
 
 from utils.paginator import ArtistPages
 from utils.bot import Bot
@@ -215,6 +216,17 @@ class Artists(commands.Cog):
             await ctx.send(e)
         else:
             await p.start(ctx)
+            
+    @botchannel()
+    @commands.command()
+    async def artists(self, ctx: Context, *, type:Optional[str]):
+        """Shows all artists or popular artists depending on the type provided.
+        By default shows all artists."""
         
+        type = type or 'all'
+        if type.casefold() == 'popular':
+            await ctx.invoke(self.popartists)
+        else:
+            await ctx.invoke(self.allartists)
 def setup(bot: Bot):
     bot.add_cog(Artists(bot))
