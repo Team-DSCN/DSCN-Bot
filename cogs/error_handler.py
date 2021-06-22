@@ -8,6 +8,7 @@ from discord.ext import commands
 from utils.errors import NotBotChannel
 from utils.bot import Bot
 from utils.context import Context
+from utils.utils import command_usage
 
 class ErrorHandler(commands.Cog):
     def __init__(self, bot: Bot):
@@ -67,13 +68,13 @@ class ErrorHandler(commands.Cog):
             return await ctx.send(f'{ctx.command} is on a cooldown. Please retry after: {error.retry_after:.2f}')
         
         elif isinstance(error, commands.MissingRequiredFlag):
-            return await ctx.send(f'Missing flag: **{error.flag.name}** in `{ctx.command.qualified_name} {ctx.command.signature}`')
+            return await ctx.send(f'Missing flag: **{error.flag.name}** in `{command_usage(ctx.command)}`')
         
         elif isinstance(error, commands.MissingFlagArgument):
             return await ctx.send(f'**{error.flag.name}** is missing an argument.')
         
         elif isinstance(error, commands.MissingRequiredArgument):
-            return await ctx.send(f'Missing required argument: **{error.param}** in `{ctx.command.qualified_name} {ctx.command.signature}`')
+            return await ctx.send(f'Missing required argument: **{error.param.name}** in `{command_usage(ctx.command)}`')
             
         else:
             raise error

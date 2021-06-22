@@ -26,7 +26,7 @@ class EventLogger(commands.Cog):
         Optional[discord.TextChannel]
             The channel if set or None.
         """
-        settings = await self.bot.utils.find_one({'guildId':guild.id})
+        settings = await self.bot.settings.find_one({'guildId':guild.id})
         if not settings:
             return
         
@@ -225,7 +225,7 @@ class EventLogger(commands.Cog):
             
             if removed:
                 embed.add_field(
-                    name = 'Roles Added',
+                    name = 'Roles Removed',
                     value = ', '.join([r.mention for r in removed]),
                     inline = False
                 )

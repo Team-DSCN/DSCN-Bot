@@ -59,7 +59,7 @@ async def get_pre(bot, message:discord.Message) -> Iterable[str]:
     if message.guild is None:
         base.append('.')
     else:
-        settings: dict = await bot.utils.find_one({'guildId':message.guild.id})
+        settings: dict = await bot.settings.find_one({'guildId':message.guild.id})
         if settings:
             prefixes = settings.get('prefixes', ['.'])
             if prefixes:
@@ -108,7 +108,7 @@ class Bot(commands.Bot):
         if not hasattr(self, 'artists'):
             self.artists = Client(URI, 'DSCN', 'Artists')
         if not hasattr(self, 'utils'):
-            self.utils = Client(URI, 'Utils', 'Settings')
+            self.settings = Client(URI, 'Utils', 'Settings')
         # if not hasattr(self, 'tags'):
         #     self.tags = Client(URI, 'DSCN', 'Tags')
         # if not hasattr(self, 'utils'):

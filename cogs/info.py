@@ -27,7 +27,7 @@ class Info(commands.Cog):
         embed.set_thumbnail(url=user.avatar.url)
         if isinstance(user, discord.Member):
             embed.colour = ctx.bot.colour
-            embed.add_field(name='Nickname', value=user.nick)
+            embed.add_field(name='Nickname', value=user.nick or 'None set')
             embed.add_field(name='Created At', value=human_time(user.created_at, minimum_unit='minutes'), inline=False)
             embed.add_field(name='Joined At', value=human_time(user.joined_at, minimum_unit='minutes'), inline=False)
             members: list = ctx.guild.members
@@ -109,7 +109,7 @@ class Info(commands.Cog):
         if guild.features:
             embed.add_field(
                 name = 'Features',
-                value = ', '.join(f"{f}".replace('_', ' ').capitalize() for f in guild.features),
+                value = ', '.join(f"{f}".replace('_', ' ').title() for f in guild.features),
                 inline = False
             )
         
@@ -122,7 +122,7 @@ class Info(commands.Cog):
     @commands.group(invoke_without_command=True, aliases=['setting'])
     async def settings(self, ctx: Context):
         """Shows settings of your guild for the bot."""
-        settings = await self.bot.utils.find_one({'guildId':ctx.guild.id})
+        settings = await self.bot.settings.find_one({'guildId':ctx.guild.id})
         if settings is None:
             return await ctx.send(f'Please run `{ctx.clean_prefix}setup` first.')
         prefixes = [self.bot.user.mention]
@@ -174,7 +174,7 @@ class Info(commands.Cog):
     @prefix.command(name='add')
     async def addprefix(self, ctx: Context, *, prefix: str):
         """Adds a prefix for the guild. """
-        settings = await self.bot.utils.find_one({'guildId':ctx.guild.id})
+        settings = await self.bot.settings.find_one({'guildId':ctx.guild.id})
         if settings is None:
             return await ctx.send(f'Please run `{ctx.clean_prefix}setup` first.')
         
@@ -182,7 +182,7 @@ class Info(commands.Cog):
             prefixes = settings.get('prefixes', [])
             prefixes.append(prefix)
             prefixes = list(set(prefixes))
-            await self.bot.utils.update_one(
+            await self.bot.settings.update_one(
                 {'guildId':ctx.guild.id},
                 {'$set':{'prefixes':prefixes}}
             )
@@ -193,7 +193,7 @@ class Info(commands.Cog):
     @prefix.command(name='remove')
     async def removeprefix(self, ctx: Context, *, prefix: str):
         """Removes a prefix"""
-        settings = await self.bot.utils.find_one({'guildId':ctx.guild.id})
+        settings = await self.bot.settings.find_one({'guildId':ctx.guild.id})
         if settings is None:
             return await ctx.send(f'Please run `{ctx.clean_prefix}setup` first.')
 
@@ -201,7 +201,7 @@ class Info(commands.Cog):
             prefixes: list = settings.get('prefixes')
             prefixes.remove(prefix)
             prefixes = list(set(prefixes))
-            await self.bot.utils.update_one(
+            await self.bot.settings.update_one(
                 {'guildId':ctx.guild.id},
                 {'$set':{'prefixes':prefixes}}
             )
@@ -212,18 +212,18 @@ class Info(commands.Cog):
     async def setlog(self, ctx: Context, *, channel: Optional[discord.TextChannel]):
         """Sets or removes a log channel."""
             
-        settings = await self.bot.utils.find_one({'guildId':ctx.guild.id})
+        settings = await self.bot.settings.find_one({'guildId':ctx.guild.id})
         if settings is None:
             return await ctx.send(f'Please run `{ctx.clean_prefix}setup` first.')
         else:
-            await self.bot.utils.update_one(
+            await self.bot.settings.update_one(
                 {'guildId':ctx.guild.id},
                 {'$set':{'log':channel.id if channel else None}}
             )
         await ctx.tick(True)
         
     @commands.has_guild_permissions(manage_guild=True)
-    @settings.command(name='commands')
+    @settings.command(name='commands', aliases=['cmds', 'cmd', 'command'])
     async def cmds(self, ctx: Context, channel: Optional[discord.TextChannel], *, option: str):
         """Disables or Enables bot commands in a channel.
         
@@ -231,7 +231,7 @@ class Info(commands.Cog):
         Disable using: `disable` or `off`
         """
         channel = channel or ctx.channel
-        settings = await self.bot.utils.find_one({'guildId':ctx.guild.id})
+        settings = await self.bot.settings.find_one({'guildId':ctx.guild.id})
         if settings is None:
             return await ctx.send(f'Please run `{ctx.clean_prefix}setup` first.')
         channels = settings.get('disabledChannels', [])
@@ -244,18 +244,18 @@ class Info(commands.Cog):
         else:
             return await ctx.send('Invalid option given.')
         
-        await self.bot.utils.update_one(
+        await self.bot.settings.update_one(
             {'guildId':ctx.guild.id},
             {'$set':{'disabledChannels': channels}}
         )
         
         await ctx.tick(True)
-        await ctx.send(f'Commands succesfully **{update}** for `{channel.name}`!')
+        await ctx.send(f'Commands succesfully **{update}** for `#{channel.name}`!')
     @commands.has_guild_permissions(manage_guild=True)
     @commands.command()
     async def setup(self, ctx: Context):
         """Sets up the server so you can enable logging and multiple prefixes."""
-        await self.bot.utils.delete_one({'guildId':ctx.guild.id})
+        await self.bot.settings.delete_one({'guildId':ctx.guild.id})
            
         document = {
             'guildId':ctx.guild.id,
@@ -264,7 +264,7 @@ class Info(commands.Cog):
             'disabledChannels':[]
         }
         
-        await self.bot.utils.insert_one(document)
+        await self.bot.settings.insert_one(document)
         
         await ctx.send('Server has been setup successfully!')
         await ctx.tick(True)
