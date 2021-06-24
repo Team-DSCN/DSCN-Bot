@@ -1,17 +1,25 @@
 from __future__ import annotations
+from datetime import datetime
 
+import itertools
+import time
 import discord
+import humanize
+import pygit2
+import pkg_resources
+import psutil
 
 from discord.ext import commands
 from utils.bot import Bot
 from utils.context import Context
 from utils.checks import botchannel
-from utils.utils import DSCN_GUILD, human_time
+from utils.utils import DSCN_GUILD, Embed, human_time
 from typing import Union, Optional
 
 class Info(commands.Cog):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
+        self.process = psutil.Process()
 
     @botchannel()
     @commands.command(aliases=['ui'])
@@ -118,155 +126,163 @@ class Info(commands.Cog):
             
         await ctx.send(embed=embed)
     
-    @commands.has_guild_permissions(manage_guild=True)
-    @commands.group(invoke_without_command=True, aliases=['setting'])
-    async def settings(self, ctx: Context):
-        """Shows settings of your guild for the bot."""
-        settings = await self.bot.settings.find_one({'guildId':ctx.guild.id})
-        if settings is None:
-            return await ctx.send(f'Please run `{ctx.clean_prefix}setup` first.')
-        prefixes = [self.bot.user.mention]
-        prefixes.extend(settings.get('prefixes', ['.']))
-        log = settings.get('log', 'None set')
-        if isinstance(log, int):
-            log = f'<#{log}>'
+    def format_commit(self, commit):
+        short, _, _ = commit.message.partition('\n')
+        short_sha2 = commit.hex[0:6]
         
-        channel_ids = settings.get('disabledChannels')
-        if channel_ids:
-            disabledChannels = '\n'.join([f'<#{c}>' for c in channel_ids])
-        else:
-            disabledChannels = 'None set'
-            
+        # [`hash`](url) message
+        return f'[`{short_sha2}`](https://github.com/Rapptz/RoboDanny/commit/{commit.hex}) {short}'
+
+    def get_last_commits(self, count=3):
+        repo = pygit2.Repository('.git')
+        commits = list(itertools.islice(repo.walk(repo.head.target, pygit2.GIT_SORT_TOPOLOGICAL), count))
+        return '\n'.join(self.format_commit(c) for c in commits)
+    
+    @botchannel()
+    @commands.command()
+    async def about(self, ctx: Context):
+        """Gives info on the bot."""
+        revision = self.get_last_commits()
+        
         embed = discord.Embed(
-            title = 'Guild Settings',
-            colour = ctx.bot.colour,
-            description = f'**ID:** {ctx.guild.id}',
-            timestamp = discord.utils.utcnow()
+            title = 'Official Bot Server Invite',
+            url = 'https://discord.gg/2NVgaEwd2J',
+            colour = self.bot.colour,
+            description = 'Latest Changes:\n'+revision
         )
         
-        embed.set_footer(text=ctx.bot.branding)
+        guild: discord.Guild = self.bot.get_guild(DSCN_GUILD)
+        owner = guild.get_member(self.bot.owner_id)
+        if not owner:
+            owner = await guild.fetch_member(self.bot.owner_id)
+            
+        embed.set_author(name=str(owner), icon_url=owner.avatar.url)
         
-        embed.add_field(
-            name = 'Prefixes',
-            value = '\n'.join([f'{i}. {p}' for i,p in enumerate(prefixes, 1)])
-        )
+        total_members = 0
+        total_unique = len(self.bot.users)
         
-        embed.add_field(
-            name = 'Log Channel',
-            value = log
-        )
+        text = 0
+        voice = 0
+        guilds = 0
         
-        embed.add_field(
-            name = 'Blacklisted Channels',
-            value = disabledChannels
-        )
+        for guild in self.bot.guilds:
+            guilds += 1
+            if guild.unavailable:
+                continue
+            total_members += guild.member_count
+            for channel in guild.channels:
+                if isinstance(channel, discord.TextChannel):
+                    text += 1
+                elif isinstance(channel, discord.VoiceChannel):
+                    voice += 1
+                    
+        embed.add_field(name='Members', value=f'{total_members} total\n{total_unique} unique')
+        embed.add_field(name='Channels', value=f'{text + voice} total\n<:text:824903975626997771>{text} <:voice:824903975098777601>{voice}')
         
+        memory_usage = self.process.memory_full_info().uss / 1024**2
+        cpu_usage = self.process.cpu_percent() / psutil.cpu_count()
+        embed.add_field(name='Process', value=f'{memory_usage:.2f} MiB\n{cpu_usage:.2f}% CPU')
+
+        version = pkg_resources.get_distribution('discord.py').version
+        embed.add_field(name='Guilds', value=guilds)
+        embed.add_field(name='Commands', value=len(self.bot.commands))
+        embed.add_field(name='Uptime', value=humanize.naturaltime(self.bot.uptime, when=datetime.utcnow()))
+        embed.set_footer(text=f'Made with discord.py v{version}', icon_url='http://i.imgur.com/5BFecvA.png')
+        embed.timestamp = discord.utils.utcnow()
         await ctx.send(embed=embed)
         
-    @commands.has_guild_permissions(manage_guild=True)
-    @settings.group()
-    async def prefix(self, ctx: Context):
-        """Command group for adding or removing a prefix. """
-        if ctx.invoked_subcommand is None:
-            return await ctx.send('Use either `prefix add` or `prefix remove` to add or remove a prefix.')
         
-    @commands.has_guild_permissions(manage_guild=True)
-    @prefix.command(name='add')
-    async def addprefix(self, ctx: Context, *, prefix: str):
-        """Adds a prefix for the guild. """
-        settings = await self.bot.settings.find_one({'guildId':ctx.guild.id})
-        if settings is None:
-            return await ctx.send(f'Please run `{ctx.clean_prefix}setup` first.')
+    @botchannel()
+    @commands.command()
+    async def ping(self, ctx: Context):
+        """Shows the bot's ping."""
         
-        else:
-            prefixes = settings.get('prefixes', [])
-            prefixes.append(prefix)
-            prefixes = list(set(prefixes))
-            await self.bot.settings.update_one(
-                {'guildId':ctx.guild.id},
-                {'$set':{'prefixes':prefixes}}
-            )
-            
-        await ctx.tick(True)
+        start = time.perf_counter()
+        msg = await ctx.send('Pinging...')
+        end = time.perf_counter()
         
-    @commands.has_guild_permissions(manage_guild=True)
-    @prefix.command(name='remove')
-    async def removeprefix(self, ctx: Context, *, prefix: str):
-        """Removes a prefix"""
-        settings = await self.bot.settings.find_one({'guildId':ctx.guild.id})
-        if settings is None:
-            return await ctx.send(f'Please run `{ctx.clean_prefix}setup` first.')
-
-        else:
-            prefixes: list = settings.get('prefixes')
-            prefixes.remove(prefix)
-            prefixes = list(set(prefixes))
-            await self.bot.settings.update_one(
-                {'guildId':ctx.guild.id},
-                {'$set':{'prefixes':prefixes}}
-            )
-        await ctx.tick(True)
+        typing_latency = (end-start)*1000
+        websocket_latency = self.bot.latency*1000
         
-    @commands.has_guild_permissions(manage_guild=True)
-    @settings.command(name='log', aliases=['channel'])
-    async def setlog(self, ctx: Context, *, channel: Optional[discord.TextChannel]):
-        """Sets or removes a log channel."""
-            
-        settings = await self.bot.settings.find_one({'guildId':ctx.guild.id})
-        if settings is None:
-            return await ctx.send(f'Please run `{ctx.clean_prefix}setup` first.')
-        else:
-            await self.bot.settings.update_one(
-                {'guildId':ctx.guild.id},
-                {'$set':{'log':channel.id if channel else None}}
-            )
-        await ctx.tick(True)
+        start = time.perf_counter()
+        await self.bot.settings.find_one({'guildId':ctx.guild.id})
+        end = time.perf_counter()
         
-    @commands.has_guild_permissions(manage_guild=True)
-    @settings.command(name='commands', aliases=['cmds', 'cmd', 'command'])
-    async def cmds(self, ctx: Context, channel: Optional[discord.TextChannel], *, option: str):
-        """Disables or Enables bot commands in a channel.
+        mongo_latency = (end-start)*1000
         
-        Enable using: `enable` or `on`
-        Disable using: `disable` or `off`
-        """
-        channel = channel or ctx.channel
-        settings = await self.bot.settings.find_one({'guildId':ctx.guild.id})
-        if settings is None:
-            return await ctx.send(f'Please run `{ctx.clean_prefix}setup` first.')
-        channels = settings.get('disabledChannels', [])
-        if option in ('disable', 'off'):
-            channels.append(channel.id)
-            update = 'disabled'
-        elif option in ('enable', 'on'):
-            channels.remove(channel.id)
-            update = 'enabled'
-        else:
-            return await ctx.send('Invalid option given.')
-        
-        await self.bot.settings.update_one(
-            {'guildId':ctx.guild.id},
-            {'$set':{'disabledChannels': channels}}
+        embed = Embed(title='\U0001f3d3 Pong!')
+        embed.add_field(
+            name = '<a:typing:828718094959640616> | Typing',
+            value = f'`{typing_latency:.2f}ms`'
+        )
+        embed.add_field(
+            name = '<a:settings:801424449542815744> | Websocket',
+            value = f'`{websocket_latency:.2f}ms`'
+        )
+        embed.add_field(
+            name = '<:mongo:814706574928379914> | Database',
+            value = f'`{mongo_latency:.2f}ms`'
         )
         
-        await ctx.tick(True)
-        await ctx.send(f'Commands succesfully **{update}** for `#{channel.name}`!')
-    @commands.has_guild_permissions(manage_guild=True)
+        await msg.edit(content=None, embed=embed)
+        
+    @botchannel()
     @commands.command()
-    async def setup(self, ctx: Context):
-        """Sets up the server so you can enable logging and multiple prefixes."""
-        await self.bot.settings.delete_one({'guildId':ctx.guild.id})
-           
-        document = {
-            'guildId':ctx.guild.id,
-            'prefixes':['.'],
-            'log':None,
-            'disabledChannels':[]
-        }
+    async def prefix(self, ctx: Context):
+        """Shows all the set prefix for the guild."""
+        base = [self.bot.user.mention]
+        settings = await self.bot.settings.find_one({'guildId':ctx.guild.id})
+        if settings:
+            base.extend(settings['prefixes'])
+        else:
+            base.append('.')
+            
+        embed = Embed(
+            title=f'Prefixes for {ctx.guild.name}',
+            description='\n'.join(f'{i}. {p}' for i,p in enumerate(base, 1)),
+            footer=f'ID: {ctx.guild.id}'
+        )
         
-        await self.bot.settings.insert_one(document)
+        await embed.send(ctx.channel)
         
-        await ctx.send('Server has been setup successfully!')
-        await ctx.tick(True)
+    @botchannel()
+    @commands.command(aliases=['av'])
+    async def avatar(self, ctx: Context, *, user: Optional[discord.User]):
+        """Shows avatar of a user."""
+        user = user or ctx.author
+        
+        def url_as(format: str) -> str:
+            return user.avatar.with_format(format).url
+        
+        embed = Embed(
+            title = f'Avatar for {user}',
+            description=(
+                f'Link As\n'\
+                f'[png]({url_as("png")}) | [jpg]({url_as("jpg")}) | [webp]({url_as("webp")})'
+            )
+        )
+        
+        embed.set_image(url=user.avatar.url)
+        await embed.send(ctx.channel)
+        
+    @botchannel()
+    @commands.command()
+    async def invite(self, ctx: Context):
+        """Gives an invite for the bot"""
+        
+        def get_link(permissions: discord.Permissions) -> str:
+            return discord.utils.oauth_url(self.bot.user.id, permissions)
+        
+        embed = Embed(
+            title = 'Invite Links',
+            description = (
+                f'[Invite Link (Minimal Perms)]({get_link(discord.Permissions(2147863616))})\n'\
+                f'[Invite Link (Admin)]({get_link(discord.Permissions(8))})\n'\
+                f'[Bot Server](https://discord.gg/2NVgaEwd2J)'
+            )
+        )
+        
+        await embed.send(ctx.channel)
+        
 def setup(bot: Bot):
     bot.add_cog(Info(bot))
