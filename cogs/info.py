@@ -152,7 +152,7 @@ class Info(commands.Cog):
         commit_time = datetime.datetime.fromtimestamp(commit.commit_time).astimezone(commit_tz)
         # [`hash`](url) message (offset)
         offset = humanize.naturaltime(commit_time, when=discord.utils.utcnow())
-        return f'[`{short_sha2}`](https://github.com/Rapptz/RoboDanny/commit/{commit.hex}) {short} ({offset})'
+        return f'[`{short_sha2}`](https://github.com/Team-DSCN/DSCN-Bot/commit/{commit.hex}) {short} ({offset})'
 
     def get_last_commits(self, count=3):
         repo = pygit2.Repository('.git')
@@ -164,7 +164,10 @@ class Info(commands.Cog):
     @commands.command()
     async def about(self, ctx: Context):
         """Gives info on the bot."""
-        revision = self.get_last_commits()
+        try:
+            revision = self.get_last_commits()
+        except:
+            revision = 'Could not fetch at moment.'
         
         embed = discord.Embed(
             title = 'Official Bot Server Invite',
