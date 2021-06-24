@@ -1,17 +1,19 @@
 from __future__ import annotations
 import discord
 import humanize
+import os
 
 from typing import Optional
 from utils.bot import Bot
 from utils.utils import human_time, Embed
-
 from discord.ext import commands
-
 
 class EventLogger(commands.Cog):
     def __init__(self, bot: Bot):
         self.bot = bot
+        
+    async def on_ready(self) -> None:
+        await self.bot.wait_until_ready()
         
     async def check_log_channel(self, guild: discord.Guild) -> Optional[discord.TextChannel]:
         """Checks if a log channel is set for the current guild or not.
@@ -155,7 +157,10 @@ class EventLogger(commands.Cog):
         members: list[discord.Member] = member.guild.members
         members.sort(key=lambda m: m.joined_at)
         
-        index = members.index(member)
+        try:
+            index = members.index(member)
+        except ValueError:
+            return
         
         embed = Embed(
             author = member,
@@ -283,6 +288,50 @@ class EventLogger(commands.Cog):
         )
             
         await embed.send(channel)
+    
+    async def guild_logger(self, guild: discord.Guild, event: str):
+        if event.casefold() == 'remove':
+            colour = discord.Colour.red()
+            title = 'Guild Left'
+        elif event.casefold() == 'join':
+            colour = discord.Colour.green()
+            title = 'Guild Joined'
+            
+        embed = Embed(
+            title = title,
+            colour = colour,
+            footer = f'Server Count: {len(self.bot.guilds)}',
+            description = (
+                f'Guild ID: {guild.id}\n'\
+                f'Guild Name: {guild.name}\n'\
+                f'Owner: {guild.owner} ({guild.owner.id})\n'\
+                f'Membercount: {len(guild.members)}'
+            )
+        )
         
+        if guild.icon:
+            embed.set_thumbnail(url=guild.icon.url)
+            
+        webhook = discord.Webhook.from_url(url=os.getenv('DSCN_LOGGER'), session=self.bot.session)
+        await webhook.send(embed=embed)
+    
+    @commands.Cog.listener()
+    async def on_guild_remove(self, guild: discord.Guild):
+        await self.bot.settings.delete_one({'guildId':guild.id})
+        await self.guild_logger(guild, 'remove')
+        
+    @commands.Cog.listener()
+    async def on_guild_join(self, guild: discord.Guild):
+        if guild.system_channel:
+            await guild.system_channel.send(content=(
+                f'Thankyou for inviting me to your server! \U0001f604\n'\
+                f'Lets begin with the setup process:\n'\
+                f'Firstly, anyone with Mangage Guild Permissions can set me up (use the admin commands.)\n'\
+                f'Setting up is easy, just run `.setup`! Furthermore, you can now mess with the settings to configure me '\
+                f'the way you want to be. Use the `.settings` command or check out its help `.help settings`.\n'\
+                f'If you need anymore assistance, contact ItsArtemiz#8858. You can find him in the DSCN server.'
+            ))
+        await self.guild_logger(guild, 'join')
+    
 def setup(bot: Bot):
     bot.add_cog(EventLogger(bot))
