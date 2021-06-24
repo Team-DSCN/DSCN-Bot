@@ -15,5 +15,5 @@ class ArtistEdit(commands.FlagConverter, case_insensitive=True):
     name: Optional[str]
     music: Optional[str]
     release: Optional[str]
-    avatar: Optional[Union[discord.User, str]] = commands.flag(default=lambda ctx: ctx.guild.icon.url)
+    avatar: Optional[Union[discord.User, str]]
     aliases: Optional[str]
