@@ -94,7 +94,7 @@ class Bot(commands.Bot):
 
         self.colour = 0xce0037
         self.branding = 'DSCN'
-        self.version = '1.2.0'
+        self.version = '1.2.0a'
         
         for extension in EXTENSIONS:
             self.load_extension(extension)
