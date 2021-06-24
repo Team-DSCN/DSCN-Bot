@@ -62,7 +62,6 @@ class RoboPages(menus.MenuPages, inherit_buttons=False):
     @menus.button('<:info:855373614625587241>', position=Last(2))
     async def show_information_page(self, payload):
         """Shows this message."""
-        await self.remove_reaction('<:info:855373614625587241>', payload)
         embed = discord.Embed(
             title = 'Paginator Help',
             description= ' Hello! Welcome to the Help Page.',
@@ -78,7 +77,7 @@ class RoboPages(menus.MenuPages, inherit_buttons=False):
         await self.message.edit(content=None, embed=embed)
 
         async def go_back_to_current_page():
-            await asyncio.sleep(20.0)
+            await asyncio.sleep(15.0)
             await self.show_page(self.current_page)
 
         self.bot.loop.create_task(go_back_to_current_page())
