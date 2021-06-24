@@ -50,7 +50,11 @@ EXTENSIONS = {
     'cogs.artists',
     'cogs.info',
     'cogs.error_handler',
-    'cogs.logging'
+    'cogs.logging',
+    'cogs.help',
+    'cogs.admin',
+    'cogs.tech',
+    'cogs.config'
 }
 
 async def get_pre(bot, message:discord.Message) -> Iterable[str]:
