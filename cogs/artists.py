@@ -136,30 +136,33 @@ class Artists(commands.Cog):
         if not artist:
             return
         
-        if artist.avatar and flag.avatar is None:
-            avatar = artist.avatar
-        else:
-            avatar = flag.avatar
+        avatar = flag.avatar or artist.avatar
         
         if isinstance(avatar, discord.User):
-            avatar = avatar.avatar.url
-            
+            avatar = avatar.avatar.url        
+        
         if not avatar.startswith('http'):
-            return await ctx.send('Invalid avatar given. Avatars must start with "http(s)". You may also give a discord user.')
+            return await ctx.send('Avatar url should start with "http(s)"!')
         
         if flag.aliases:
             aliases = flag.aliases.replace(', ', ',').replace(' ,', ',').split(',')
             aliases.extend(artist.aliases)
         else:
             aliases = artist.aliases
-
         aliases = list(set(aliases))
+        for alias in aliases:
+            if alias.startswith('-'):
+                try:
+                    aliases.remove(alias)
+                    aliases.remove(alias.replace('-', ''))
+                except ValueError:
+                    pass
         
         document = {
             'name':flag.name or artist.name,
             'music':flag.music or artist.music,
             'release':flag.release or artist.release,
-            'avatar':avatar or artist.avatar,
+            'avatar':avatar,
             'added':artist.added,
             'searches':artist.searches,
             'aliases':aliases
@@ -173,7 +176,8 @@ class Artists(commands.Cog):
         embed.set_footer(text='Modified At')
         embed.timestamp = discord.utils.utcnow()
 
-        embed.add_field(name='Aliases', value=', '.join(aliases))
+        if aliases:
+            embed.add_field(name='Aliases', value=', '.join(aliases))
         
         await ctx.tick(True)
         await ctx.send(embed=embed)
@@ -217,6 +221,15 @@ class Artists(commands.Cog):
         else:
             await p.start(ctx)
             
+    @botchannel()
+    @artist.command(aliases=['repr'], hidden=True)
+    async def raw(self, ctx: Context, *, name:str):
+        """Repr of the artist. If you know you know"""
+        
+        artist = await self.get_artist(ctx, name, to_return=True, update_search=True)
+        if not artist:
+            return
+        await ctx.send(repr(artist))
     @botchannel()
     @commands.command()
     async def artists(self, ctx: Context, *, type:Optional[str]):
