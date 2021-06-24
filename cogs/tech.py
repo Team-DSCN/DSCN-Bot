@@ -62,7 +62,6 @@ class Tech(commands.Cog):
         news = await self.get_news()
         embed = discord.Embed(
             title = news.title,
-            url = news.url,
             colour = discord.Colour.random(),
             timestamp = news.publishedAt
         )
@@ -70,6 +69,11 @@ class Tech(commands.Cog):
         embed.set_footer(text=f'{news.publisher} | Published At')
         embed.set_author(name=f'Author: {news.author if news.author else "Unknown"}')
         embed.description = f'{news.description}\n{news.content}'
+        
+        try:
+            embed.url = self.url
+        except:
+            pass
         
         try:
             embed.set_image(url=news.image)
@@ -84,8 +88,14 @@ class Tech(commands.Cog):
         webhook = discord.Webhook.from_url(url=os.getenv('TECH_NEWS_LOGGER'), session=self.bot.session)
         
         embed = await self.create_news_embed()
-        
-        await webhook.send(embed=embed)
+        try:
+            await webhook.send(embed=embed)
+        except:
+            embed = await self.create_news_embed()
+            try:
+                await webhook.send(embed=embed)
+            except:
+                pass
         
     @send_tech_news.before_loop
     async def before_send(self) -> None:
