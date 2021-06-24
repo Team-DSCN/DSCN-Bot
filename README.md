@@ -1,52 +1,109 @@
-## DSCN
+# DSCN
 
-A Bot we use to manage stuff on our Discord Server.
+![DSCN](https://media.discordapp.net/attachments/781811569378066452/852956080929767425/20210115_002051_0000.png?width=750&height=120)
 
-## Purpose
+A discord bot made for the label [DSCN](https://www.youtube.com/channel/UChzJhEHSJcG2-lg9Y5vNgNA)'s [Discord](https://discord.gg/2NVgaEwd2J) Server.
 
-We made this bot to make a lot of stuff in the server automated. We do plan on adding more features to the bot. Till the time, feel free to check the source of the bot.
-The source here is completely for educational purposes.
+## Inviting the bot
 
-## Installation
+The bot currently is in "Testing" mode and is not available to the public at the moment. Join our [Discord](https://discord.gg/2NVgaEwd2J) Server to stay updated about the bot.
 
-If you want to install the bot, follow the steps:
+## Configuring the bot
 
-1. Make sure you have Python 3.9.1
+Even though the bot isn't out to the public yet, I'll still mention on how to configure the bot when you invite it to your server.
 
-This is required to actually run the bot.
+Upon inviting, the bot's prefix by default is `.` (a fullstop). The bot is still completely useful but I have integrated a few features which will help server owners in setting up the bot according to their needs.
 
-2. Make a `.env` file in the main directory and add the following:
+Starting of, you will have to run the command `.setup` so that your guild (server) is registered with us in our database. Now you can configure the following:
 
-```python
-BOT_TOKEN=<YourBotToken>
-DB_TOKEN=<MongoDBAccessUrl>
+- Bot prefixes (you can have more than one prefix)
+- Log channel (The bot will log quite a bit of stuff like member join/leave etc)
+- Blacklist channels (in these channels, users won't be able to use bot commands)
+
+**NOTE: Anyone with the MANAGE GUILD permissions can configure the bot.**
+
+### Managing Prefix
+
+To manage your guild's prefixes, you have to use the command:
+
+- Adding a prefix is simple as: `.settings prefix add ?` (This will add `?` as one of the bot's prefixes)
+
+- Removing a prefix: `.settings prefix remove ?` (This will remove `?` from the bot's prefix)
+
+### Managing Log Channel
+
+- To set up a log channel, use the command `.settings log #channel`
+
+    This will set `#channel` as a logs channel for logging various stuff.
+
+- If you want to remove a log channel, run `.settings log`
+
+    This will remove the set log channel for your guild.
+
+### Managing Blacklisted Channels
+
+To enable/disable commands in a channel, run the command: `.settings commands enable/disable` in the channel
+
+You may also provide a channel while running the command: `.settings commands #channel enable/disable`
+
+Note: It is either `enable` or `disable` depending upon whether you want to enable or disable the commands.
+
+## Viewing Your Settings
+
+To view your settings, run `.settings`
+
+## Running
+
+The bot is being hosted on `python 3.9.5` but a minimum of `python 3.8` is required.
+
+The [discord.py](https://github.com/Rapptz/discord.py) library being used is "in dev", i.e. I am fetching from the `master` branch of the library which is obviously unstable.
+
+### Installing dependencies
+
+- All the requirements can be found in `requirements.txt` file
+
+### Creating a Database
+
+- The DSCN Bot is using the [MongoDB](https://mongodb.com/) database. You will need to create an account on MongoDB to use this.
+
+### Configuring Environments
+
+- Create a `.env` file and add the following:
+
+```yaml
+BOT_TOKEN=<Your Bot Token>
+DB_TOKEN=<MongoDB URI>
+
+TECH_API_KEY=<The API Key being used for fetching news>
+TECH_NEWS_LOGGER=<The discord webhook url to a channel to post the news in>
+
+DSCN_LOGGER=<The discord webhook url to a channel to post guild join logs>
 ```
 
-- Don't add the `<>`
+Note: `<>` shouldn't be used.
 
-3. After go to the `bot.py` file and edit the following:
+## Disclaimer
 
-- Got to line 94 and 96 and edit the `db` and `collection` according to what you have in your database.
+### License
 
-## License
+This piece of software comes with [GNU General Public License V3](https://www.gnu.org/licenses/)
 
+Check [LICENSE](https://github.com/Team-DSCN/DSCN-Bot/blob/main/LICENSE) for more info.
 
-```
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+### Self Hosting
 
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+Self-hosting is not encouraged and won't be helped with. This is here for educational purposes. If you want an instance of the bot, please invite it [here](https://discord.com/oauth2/authorize?client_id=788766967472979990&scope=bot&permissions=8).
 
-You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
-```
+## Contributing
 
-For more information, check [LICENSE](https://github.com/Team-DSCN/DSCN-Bot/blob/main/LICENSE)
-
-## Requirements
-
-Can be found [here](https://github.com/Team-DSCN/DSCN-Bot/blob/main/requirements.txt)
+In order to contribute to this project, you can make a PR to the `dev` branch of this repo. PRs to the `main` branch will be straight up rejected. Also make sure you test your code before making the PR!
 
 ## Links
 
-[teamdscn@gmail.com](mailto:teamdscn@gmail.com)
+Mail us at [teamdscn@gmail.com](mailto:teamdscn@gmail.com)
 
-[Discord Server](https://discord.gg/2NVgaEwd2J)
+Join us ar our [Discord Server](https://discord.gg/2NVgaEwd2J)
+
+Our [Spotify](https://open.spotify.com/playlist/4uLeZlMiJSvYjSsJMTKdDs?si=9b34a8470cce4ba3) playlist
+
+[YouTube](https://www.youtube.com/c/DSCNrecords)
