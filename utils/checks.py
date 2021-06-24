@@ -58,8 +58,12 @@ def ar():
 
 def botchannel():
     async def predicate(ctx: Context):
+        if ctx.author.id in owner:
+            return True
         if ctx.guild is None:
             raise commands.NoPrivateMessage('This command cannot be used in DMs.')
+        if ctx.author.guild_permissions.manage_guild:
+            return True
         settings = await ctx.bot.settings.find_one({'guildId':ctx.guild.id})
         if settings is None:
             return True
