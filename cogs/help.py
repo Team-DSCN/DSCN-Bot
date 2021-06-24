@@ -1,12 +1,6 @@
-# -*- codingL utf-8 -*-
-
 """
-Help Command Module
-~~~~~~~~~~~~~~~~~~~~
-
-This file replaces the default help command.
-
-Copyright (c) 2021 ItsArtemiz (Augadh Verma)
+The bot's help command.
+Copyright (C) 2021  ItsArtemiz (Augadh Verma)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -20,138 +14,143 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-Contact: ItsArtemiz#8858 or https://discord.gg/2NVgaEwd2J
-
 """
+
+from __future__ import annotations
+from utils.context import Context
 
 import discord
 
-from typing import List, Mapping, Union
 from discord.ext import commands
-from datetime import datetime
+from typing import List, Mapping, Optional, TYPE_CHECKING
+from utils.utils import command_help
+from utils.bot import Bot
 
-class HelpSource(commands.HelpCommand):
-    def __init__(self, **options):
-        self.colour = options.pop('colour', discord.Color.from_rgb(49, 255, 200))
-        self.footer = options.pop('footer', 'DSCN')
-
-        self.verify_checks = True
+class CustomHelp(commands.HelpCommand):
+    def __init__(self):
+        
+        self.verify_checks = False
         self.show_hidden = False
+        
         super().__init__(
             command_attrs={
-                "help":"Lists all the top notch commands based on your permission level <:rooEz:821814613124579339>",
-                "usage":"[command]"
+                'help':'Shows help for a command',
+                'usage':'[command]'
             }
         )
-
-    def command_usage(self, cmd:Union[commands.Command, commands.Group]) -> str:
-        return f"{cmd.qualified_name} {cmd.signature}"
-
-    def command_help(self, cmd:Union[commands.Command, commands.Group]) -> str:
-        return cmd.help if cmd.help else 'No help provided...'
-
+        
+    def get_command_signature(self, command: commands.Command | commands.Group) -> str:
+        
+        parent = command.full_parent_name
+        if len(command.aliases) > 0:
+            aliases = ' | '.join(command.aliases)
+            fmt = f'[{command.name} | {aliases}]'
+            if parent:
+                fmt = f'{parent} {fmt}'
+            alias = fmt
+        else:
+            alias = command.name if not parent else f'{parent} {command.name}'
+        return f'{alias} {command.signature}'
+    
+    
     async def send_bot_help(
         self,
-        mapping
+        mapping: Mapping[Optional[commands.Cog], List[commands.Command]]
     ):
-
-        """
-        The bot's help command.
-        """
+        """The main help command."""
+        
         embed = discord.Embed(
-            title="Help",
-            colour = self.colour,
-            timestamp=datetime.utcnow(),
-            description=f"Type `{self.clean_prefix}help [command/category]` for more info on a command or a category."
-        ).set_footer(text=self.footer)
-
+            title='Help',
+            colour=self.context.bot.colour,
+            timestamp=discord.utils.utcnow()
+            
+        )
+        embed.set_footer(text=self.context.bot.branding)
+        can_run = 0
+        _all = 0
         for cog, cmds in mapping.items():
             if cog and cmds:
-                f = await self.filter_commands(cmds, sort=True)
-                if f:
-                    try:
-                        embed.add_field(
-                            name=cog.qualified_name,
-                            value=f", ".join([f"`{c.name}`" for c in f]),
-                            inline=False
-                        )
-                    except:
+                L = []
+                for cmd in cmds:
+                    if cmd.hidden:
                         pass
-        await self.get_destination().send(embed=embed)
-
-    async def send_command_help(self, command:Union[commands.Command, commands.Group]):
-        """
-        I am just using `send_command_help` because I am lazy and it works.
-        """
-        embed = discord.Embed(
-            title="Help",
-            description=self.command_help(command),
-            colour=self.colour,
-            timestamp=datetime.utcnow()
-        )
-        embed.set_footer(text=self.footer)
-
-        embed.add_field(
-            name="Usage",
-            value=f"`{self.command_usage(command)}`",
-            inline=False
-        )
-
-        if command.aliases:
-            embed.add_field(
-                name="Aliases",
-                value=", ".join([f"`{c}`" for c in command.aliases]),
-                inline=False
-            )
-
-        if isinstance(command, commands.Group):
-            f = await self.filter_commands(command.commands, sort=True)
-            embed.add_field(
-                name="Subcommands",
-                value=", ".join([f"`{c.name}`" for c in f]),
-                inline=False
-            )
-
-        await self.get_destination().send(embed=embed)
-
-    send_group_help = send_command_help
-
-
-    async def send_cog_help(self, cog:commands.Cog):
-        """
-        This sends the help regarding an extension.
-        """
-
-        embed = discord.Embed(
-            title = f"All the commands for `{cog.qualified_name}` category",
-            colour = self.colour,
-            timestamp = datetime.utcnow()
-        ).set_footer(text=self.footer)
-
-        if cog.description:
-            embed.description = cog.description
+                    
+                    else:
+                        _all+=1
+                        try:
+                            await cmd.can_run(self.context)
+                            can_run+=1
+                            L.append(f'`{cmd.name}`')
+                        except:
+                            L.append(f'~~`{cmd.name}`~~')
+                if L:                  
+                    embed.add_field(
+                        name=cog.qualified_name,
+                        value=f', '.join(L),
+                        inline=False
+                    )
         
-        f = await self.filter_commands(cog.get_commands(), sort=True)
-        for cmd in f:
-            try:
-                embed.add_field(
-                    name = self.command_usage(cmd),
-                    value = self.command_help(cmd)
-                )
-            except:
-                pass
-
+        embed.description = (
+                f'Type `{self.context.clean_prefix}help [command]` for more info on a command.\n'\
+                f'Commands that are striked, (i.e. ~~name~~) cannot be used by you.\n'\
+                f'*You can run {can_run}/{_all} commands.*'
+            )
+        
         await self.get_destination().send(embed=embed)
+        
+    async def send_command_help(self, command: commands.Command | commands.Group):
+        # Well, since making a single command for both Command and Group work so here it is.
+        embed = discord.Embed(
+            title=self.get_command_signature(command),
+            description=command_help(command),
+            timestamp=discord.utils.utcnow(),
+            colour=self.context.bot.colour
+        )
+        embed.set_footer(text=self.context.bot.branding)
 
-class Help(commands.Cog):
-    """
-    RoboArt's help command!
-    """
-
-    def __init__(self, bot:commands.Bot):
+            
+        if isinstance(command, commands.Group):
+            L = []
+            for cmd in command.commands:
+                if TYPE_CHECKING:
+                    cmd: commands.Command | commands.Group
+                if cmd.hidden:
+                    pass
+                else:
+                    try:
+                        await cmd.can_run(self.context)
+                        L.append(f'`{cmd.name}`')
+                    except:
+                        L.append(f'~~`{cmd.name}`~~')
+            if L:
+                embed.add_field(
+                    name='Subcommands',
+                    value=', '.join(L),
+                    inline=False
+                )
+        try:
+            await command.can_run(self.context)
+            can_run = True
+        except:
+            can_run = False
+        
+        embed.add_field(
+            name='Can Run?',
+            value=f'{"Yes" if can_run else "No"}'
+        )
+        
+        await self.get_destination().send(embed=embed)
+    
+    send_group_help = send_command_help
+                    
+    async def send_error_message(self, error):
+        pass
+    
+class MyHelp(commands.Cog):
+    """The bot's actual help command."""
+    def __init__(self, bot: Bot):
         self.bot = bot
-        self.bot.help_command = HelpSource(colour=self.bot.colour)
-
-def setup(bot:commands.Bot):
-    bot.add_cog(Help(bot))
+        self.bot.help_command = CustomHelp()
+        
+def setup(bot: Bot):
+    bot.add_cog(MyHelp(bot))

@@ -1,5 +1,5 @@
 """
-Some external errors
+Flags in-concern with the bot
 Copyright (C) 2021  ItsArtemiz (Augadh Verma)
 
 This program is free software: you can redistribute it and/or modify
@@ -16,18 +16,22 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from __future__ import annotations
+from typing import Optional, Union
+
+import discord
+
 from discord.ext import commands
 
-class CollectionNotSet(Exception):
-    pass
+class ArtistAdd(commands.FlagConverter, case_insensitive=True):
+    name: str
+    music: str = commands.flag(name='music', aliases=['style'])
+    release: str = commands.flag(name='release', aliases=['playlist'])
+    avatar: Optional[Union[discord.User, str]] = commands.flag(default=lambda ctx: ctx.guild.icon.url)
 
-class NotBotChannel(commands.CheckFailure):
-    def __init__(self, message=None, *args):
-        if not message:
-            message = (
-                'The current channel is not whitelisted.'\
-                ' Use the commands in a channel that is whitelisted.'
-            )
-        else:
-            message = message
-        super().__init__(message=message, *args)
+class ArtistEdit(commands.FlagConverter, case_insensitive=True):
+    name: Optional[str]
+    music: Optional[str]
+    release: Optional[str]
+    avatar: Optional[Union[discord.User, str]]
+    aliases: Optional[str]

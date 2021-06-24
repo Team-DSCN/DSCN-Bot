@@ -1,10 +1,6 @@
-# -*- codingL utf-8 -*-
-
 """
-Configuration Module
-~~~~~~~~~~~~~~~~~~~~~
-
-Copyright (c) 2021 ItsArtemiz (Augadh Verma)
+Some Configs of the bot
+Copyright (C) 2021  ItsArtemiz (Augadh Verma)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -18,146 +14,84 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-Contact: ItsArtemiz#8858 or https://discord.gg/2NVgaEwd2J
-
 """
 
+from __future__ import annotations
+
 import discord
+import random
 
-from datetime import datetime
+from typing import Any
 from discord.ext import commands, tasks
-from bot import DSCN, extensions
-from random import choice
-from utils.checks import staff
+from utils.bot import Bot
+from utils.context import Context
 
-class Config(commands.Cog):
-    """ Configuration Module """
-    def __init__(self, bot:DSCN):
+
+class Config(commands.Cog, command_attrs=dict(hidden=True)):
+    def __init__(self, bot: Bot) -> None:
         self.bot = bot
-        self.change_pres.start()
-
-    @commands.is_owner()
+    
+    def error(self, e: Any) -> str:
+        return f'```py\n{e}```'
+        
     @commands.command()
-    async def reload(self, ctx:commands.Bot, *, name:str):
-        if name == "all":
-            for f in extensions:
+    @commands.is_owner()
+    async def load(self, ctx: Context, *, name: str):
+        try:
+            self.bot.load_extension(name)
+        except Exception as e:
+            return await ctx.send(self.error(e))
+        await ctx.send(f'📥 `{name}`')
+        
+    @commands.command()
+    @commands.is_owner()
+    async def unload(self, ctx: Context, *, name: str):
+        try:
+            self.bot.unload_extension(name)
+        except Exception as e:
+            return await ctx.send(self.error(e))
+        await ctx.send(f'📤 `{name}`')
+        
+    @commands.command()
+    @commands.is_owner()
+    async def reload(self, ctx: Context, *, name: str):
+        if name == 'all':
+            for cog in self.bot.cogs.keys():
                 try:
-                    self.bot.reload_extension(f)
+                    self.bot.reload_extension(cog)
                 except Exception as e:
-                    await ctx.send(f"```py\n{e}```")
-            return await ctx.reply("Reloading extensions successfull.")
-
+                    await ctx.send(self.error(e))
+            await ctx.send('\U0001f501 Reloaded all cogs')
+            
         else:
             try:
-                self.bot.reload_extension(f"cogs.{name}")
+                self.bot.reload_extension(name)
             except Exception as e:
-                return await ctx.send(f"```py\n{e}```")
-            await ctx.reply(f"Successfully reloaded: **`cogs/{name}.py`**")
-
-    @commands.is_owner()
-    @commands.command()
-    async def load(self, ctx:commands.Context, *,name:str):
-        """Loads a cog."""
-        try:
-            self.bot.load_extension(f"cogs.{name}")
-        except Exception as e:
-            return await ctx.send(f"```py\n{e}```")
-        await ctx.send(f"📥 Loaded extension: **`cogs/{name}.py`**")
-
-    @commands.is_owner()
-    @commands.command()
-    async def unload(self, ctx:commands.Context, *,name:str):
-        """Unloads a cog."""
-        try:
-            self.bot.unload_extension(f"cogs.{name}")
-        except Exception as e:
-            return await ctx.send(f"```py\n{e}```")
-        await ctx.send(f"📤 Unloaded extension: **`cogs/{name}.py`**")
-
-
-    async def get_activity(self) -> discord.Activity:
-        from utils.songs import songs
-        activity =  choice(songs)
-
-        return discord.Activity(
-            type = discord.ActivityType.listening,
-            name = activity
-        )
-
-    def get_status(self) -> discord.Status:
-        return choice([
+                return await ctx.send(self.error(e))
+            await ctx.send(f'\U0001f501 `{name}`')
+            
+            
+    def status(self) -> discord.Status:
+        return random.choice([
             discord.Status.online,
-            discord.Status.dnd,
-            discord.Status.idle
+            discord.Status.offline,
+            discord.Status.dnd
         ])
-
-    @tasks.loop(minutes=7.0)
-    async def change_pres(self):
-        status = self.get_status()
-        activity = await self.get_activity()
-
-        await self.bot.change_presence(
-            activity=activity,
-            status=status
-        )
-
-    @change_pres.before_loop
-    async def before_change_pres(self):
-        await self.bot.wait_until_ready()
-
-    def cog_unload(self):
-        self.change_pres.cancel()
-
-
-    @staff()
-    @commands.group(invoke_without_command=True)
-    async def status(self, ctx:commands.Context):
-        if ctx.subcommand_passed is None:
-            return await ctx.send_help(ctx.command)
+        
+    async def get_activity(self, *, All=False) -> discord.Activity | list:
+        pass
     
-    @staff()
-    @status.command(name="add")
-    async def _add(self, ctx:commands.Context, *, name:str):
-        """ Add a song to be displayed in status. """
-        from utils.songs import songs
+    @tasks.loop(minutes=5.0)
+    async def status_loop(self) -> None:
+        status = self.status()
+        activity = await self.get_activity()
+        
+        await self.bot.change_presence(activity=activity, status=status)
+    
+    @status_loop.before_loop
+    async def before_status_loop(self):
+        await self.bot.wait_until_ready()
+                    
 
-        if name not in songs:
-            songs.append(name)
-            return await ctx.send("Added successfully")
-        else:
-            return await ctx.send(f"{name} already in songs.")
-
-    @staff()
-    @status.command()
-    async def remove(self, ctx:commands.Context, *, name:str):
-        """ Removes a song in the status list. """
-        from utils.songs import songs
-        try:
-            songs.remove(name)
-            return await ctx.send("Successfully removed")
-        except ValueError:
-            return await ctx.send("The song doesn't seems to be in the songs list.")
-
-    @staff()
-    @status.command(name="list")
-    async def _list(self, ctx:commands.Context):
-        """ Lists all the status in the songs list. """
-        from utils.songs import songs
-
-        embed = discord.Embed(
-            colour=0x2F3136,
-            timestamp = datetime.utcnow()
-        )
-        i = 1
-        d = ""
-        for s in songs:
-            d += f"{i}. `{s}`\n"
-            i+=1
-        embed.description = d
-        embed.set_footer(text="All songs queued for bot status. (Not in order)")
-
-        return await ctx.send(embed=embed)
-
-def setup(bot:DSCN):
+def setup(bot: Bot):
     bot.add_cog(Config(bot))

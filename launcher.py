@@ -1,5 +1,5 @@
 """
-Some external errors
+Launches the bot.
 Copyright (C) 2021  ItsArtemiz (Augadh Verma)
 
 This program is free software: you can redistribute it and/or modify
@@ -16,18 +16,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from discord.ext import commands
+from __future__ import annotations
 
-class CollectionNotSet(Exception):
-    pass
+from utils.bot import Bot
 
-class NotBotChannel(commands.CheckFailure):
-    def __init__(self, message=None, *args):
-        if not message:
-            message = (
-                'The current channel is not whitelisted.'\
-                ' Use the commands in a channel that is whitelisted.'
-            )
-        else:
-            message = message
-        super().__init__(message=message, *args)
+if __name__ == '__main__':
+    bot = Bot()
+    bot.run()

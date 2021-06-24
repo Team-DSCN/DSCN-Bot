@@ -1,10 +1,6 @@
-# -*- codingL utf-8 -*-
-
 """
-Checks
-~~~~~~~
-
-Copyright (c) 2021 ItsArtemiz (Augadh Verma)
+Some Checks
+Copyright (C) 2021  ItsArtemiz (Augadh Verma)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -18,63 +14,78 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-Contact: ItsArtemiz#8858 or https://discord.gg/2NVgaEwd2J
-
 """
 
-from discord.ext import commands
-from .errors import NotBotChannel, InvalidArtist, NotStaff
+from __future__ import annotations
 
+import discord
+
+from utils.errors import NotBotChannel
+from utils.context import Context
+from discord.ext import commands
+
+owner = {449897807936225290, 488012130423930880, 393378646162800640}
+
+REPRESENTATIVE = 781796816257548308
+STAFF = 850669530661388288
 AR = 820579878826278932
-STAFF = 781796816257548308
-ARTIST = 782673506483568670
-BOTCHANNEL = 781809910823518218
+
+def has_any_role(member: discord.Member, roles: list[int]) -> bool:
+    
+    if not isinstance(member, discord.Member):    
+        raise TypeError(f'Instance of discord.Member expected, got {member.__class__.__name__}')
+    member_roles: list[int] = [r.id for r in member.roles]
+    for role in roles:
+        if role in member_roles:
+            return True
+    else:
+        return False
+
+def admin():
+    def predicate(ctx: Context):
+        if ctx.author.id in owner:
+            return True
+        if ctx.guild is None:
+            raise commands.NoPrivateMessage()
+        else:
+            return has_any_role(ctx.author, [REPRESENTATIVE])
+        
+    return commands.check(predicate)
 
 def staff():
-    async def pred(ctx:commands.Context):
-        if await ctx.bot.is_owner(ctx.author):
+    def predicate(ctx: Context):
+        if ctx.author.id in owner:
             return True
-        elif STAFF in [r.id for r in ctx.author.roles]:
-            return True
+        if ctx.guild is None:
+            raise commands.NoPrivateMessage()
         else:
-            raise NotStaff(f"{ctx.author} is not a member of the staff team.")
-    return commands.check(pred)
+            return has_any_role(ctx.author, [REPRESENTATIVE, STAFF])
+        
+    return commands.check(predicate)
 
 def ar():
-    async def pred(ctx:commands.Context):
-        if await ctx.bot.is_owner(ctx.author):
+    def predicate(ctx: Context):
+        if ctx.author.id in owner:
             return True
-        elif STAFF in [r.id for r in ctx.author.roles]:
-            return True
-        elif AR in [r.id for r in ctx.author.roles]:
-            return True
+        if ctx.guild is None:
+            raise commands.NoPrivateMessage()
         else:
-            raise NotStaff(f"{ctx.author} is not a member of the A&R team.")
+            return has_any_role(ctx.author, [REPRESENTATIVE, STAFF, AR])
+        
+    return commands.check(predicate)
 
-    return commands.check(pred)
-
-def artist():
-    async def pred(ctx:commands.Context):
-        if await ctx.bot.is_owner(ctx.author):
+def botchannel():
+    async def predicate(ctx: Context):
+        if ctx.author.id in owner:
             return True
-        elif STAFF in [r.id for r in ctx.author.roles]:
+        if ctx.guild is None:
+            raise commands.NoPrivateMessage('This command cannot be used in DMs.')
+        if ctx.author.guild_permissions.manage_guild:
             return True
-        elif ARTIST in [r.id for r in ctx.author.roles]:
+        settings = await ctx.bot.settings.find_one({'guildId':ctx.guild.id})
+        if settings is None:
             return True
-        else:
-            raise InvalidArtist(f"{ctx.author} is not a registered artist.")
-    return commands.check(pred)
-
-def bot_channel():
-    async def pred(ctx:commands.Context):
-        if await ctx.bot.is_owner(ctx.author):
-            return True
-        elif STAFF in [r.id for r in ctx.author.roles]:
-            return True
-        elif ctx.channel.id == BOTCHANNEL:
-            return True
-        else:
-            raise NotBotChannel("This command can be used only in a bot channel.")
-
-    return commands.check(pred)
+        if ctx.channel.id in settings.get('disabledChannels', []):
+            raise NotBotChannel(f'Cannot use bot commands in #{ctx.channel.name} since it is not whitelisted.')
+        return True
+    return commands.check(predicate)
