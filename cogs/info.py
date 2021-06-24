@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 from __future__ import annotations
-from datetime import datetime
+
 
 import itertools
 import time
@@ -26,6 +26,7 @@ import humanize
 import pygit2
 import pkg_resources
 import psutil
+import datetime
 
 from discord.ext import commands
 from utils.bot import Bot
@@ -147,12 +148,15 @@ class Info(commands.Cog):
     def format_commit(self, commit):
         short, _, _ = commit.message.partition('\n')
         short_sha2 = commit.hex[0:6]
-        
-        # [`hash`](url) message
-        return f'[`{short_sha2}`](https://github.com/Rapptz/RoboDanny/commit/{commit.hex}) {short}'
+        commit_tz = datetime.timezone(datetime.timedelta(minutes=commit.commit_time_offset))
+        commit_time = datetime.datetime.fromtimestamp(commit.commit_time).astimezone(commit_tz)
+        # [`hash`](url) message (offset)
+        offset = humanize.naturaltime(commit_time, when=discord.utils.utcnow())
+        return f'[`{short_sha2}`](https://github.com/Rapptz/RoboDanny/commit/{commit.hex}) {short} ({offset})'
 
     def get_last_commits(self, count=3):
         repo = pygit2.Repository('.git')
+        repo.set_head
         commits = list(itertools.islice(repo.walk(repo.head.target, pygit2.GIT_SORT_TOPOLOGICAL), count))
         return '\n'.join(self.format_commit(c) for c in commits)
     
@@ -204,7 +208,7 @@ class Info(commands.Cog):
         version = pkg_resources.get_distribution('discord.py').version
         embed.add_field(name='Guilds', value=guilds)
         embed.add_field(name='Commands', value=len(self.bot.commands))
-        embed.add_field(name='Uptime', value=humanize.naturaltime(self.bot.uptime, when=datetime.utcnow()))
+        embed.add_field(name='Uptime', value=humanize.naturaltime(self.bot.uptime, when=datetime.datetime.utcnow()))
         embed.set_footer(text=f'Made with discord.py v{version}', icon_url='http://i.imgur.com/5BFecvA.png')
         embed.timestamp = discord.utils.utcnow()
         await ctx.send(embed=embed)
