@@ -160,7 +160,7 @@ class EventLogger(commands.Cog):
             title = 'Member Joined',
             description = (
                 f'{member.mention} {humanize.intcomma(humanize.ordinal(len(member.guild.members)))} to join.\n'\
-                f'{new}created {human_time(member.created_at - discord.utils.utcnow(), minimum_unit="minutes")}.'
+                f'{new}created {humanize.naturaltime(member.created_at, when=discord.utils.utcnow())}.'
             )
         )
         
@@ -172,21 +172,14 @@ class EventLogger(commands.Cog):
         if not channel:
             return
         
-        members: list[discord.Member] = member.guild.members
-        members.sort(key=lambda m: m.joined_at)
-        
-        try:
-            index = members.index(member)
-        except ValueError:
-            return
-        
         embed = Embed(
             author = member,
+            title='Member Left',
             colour = discord.Colour.red(),
             footer = f'ID: {member.id}',
             description = (
-                f'{member.mention} joined {human_time(member.joined_at - discord.utils.utcnow())}.\n'\
-                f'{humanize.ordinal(index)} to join.'
+                f'{member.mention} joined {humanize.naturaltime(member.joined_at, when=discord.utils.utcnow())}.\n'
+                
             )
         )
         
