@@ -19,6 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 from datetime import datetime
 from typing import Optional
+from utils.context import Context
 import aiohttp
 
 import discord
@@ -30,7 +31,6 @@ from utils.bot import Bot
 from utils.cache import ExpiringCache
 
 cache = ExpiringCache(seconds=7200)
-key = 0
 class News:
     def __init__(self, data: dict):
         source: dict = data['source']
@@ -65,37 +65,52 @@ class Tech(commands.Cog):
     def __init__(self, bot: Bot):
         self.bot = bot
         self.send_tech_news.start()
+        self.last_message = None
 
     def country(self) -> str:
         return random.choice(['us', 'uk', 'in'])
-    
+
+
+    def news_from_cache(self) -> Optional[News]:
+        if len(list(cache.values())) <= 0:
+            return
+
+        articles: list[dict] = []
+        for v in cache.values():
+            articles.append(v[0])
+
+        article = random.choice(articles)
+        return News(article)
+
     async def get_news(self, *, use_cache=False) -> News | None:
-        if use_cache and len(list(cache.values())) > 0:
-            choice = random.choice(list(cache.values()))
+        if use_cache:
+            news = self.news_from_cache()
+            if news:
+                return news
             
-            news = News(choice[0])
-            return news
-            
-        global key
         headers = {'X-Api-key':os.environ.get('TECH_API_KEY')}
         url = f'https://newsapi.org/v2/top-headlines?country={self.country()}&category=technology'
         async with aiohttp.ClientSession(headers=headers) as session:
             async with session.get(url) as response:
                 if response.status == 200:
-                    r = await response.json()
-                    l: list[dict] = r['articles']
-                    
-                    for item in l:
-                        cache[key] = item
-                        key+=1
-                    if l is None and len(list(cache.values())):
-                        l = list(cache.values())
-                    else:
-                        return
-                    choice: dict = random.choice(l)
-                    return News(choice)
+                    r: dict = await response.json()
+                    if r.get('totalResults') > 0:
+                        articles: list[dict] = r.get('articles', [])
+                        for article in articles:
+                            cache[article.get('title', discord.utils.utcnow().timestamp)] = article
             
-    
+                        article = random.choice(articles)
+                        return News(article)
+        news = self.news_from_cache()
+        if news:
+            return news
+        
+        if self.last_message:
+            context = await self.bot.get_context(self.last_message, cls=Context)
+            try:
+                await context.invoke(self.tech)
+            except:
+                pass
     @tasks.loop(hours=1.0)
     async def send_tech_news(self) -> None:
         webhook = discord.Webhook.from_url(url=os.getenv('TECH_NEWS_LOGGER'), session=self.bot.session)
@@ -103,9 +118,12 @@ class Tech(commands.Cog):
             news = await self.get_news()
         except IndexError:
             print('Index Error Occurred while sending the tech news.')
-        if news:
-            await webhook.send(embed=news.embed)
-    
+        else:
+            if not news:
+                return
+            a = await webhook.send(embed=news.embed, wait=True)
+            self.last_message = a
+            
     @commands.has_role(773829273500909618) # Admin in Techspiration Server
     @commands.command(hidden=True)
     async def tech(self, ctx, channel:Optional[discord.TextChannel]):
